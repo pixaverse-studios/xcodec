@@ -1,5 +1,5 @@
 # X-Codec-2.0
-SingleX-Codec
+Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Synthesis (Comming Soon!)
 
 
 ## Setup
