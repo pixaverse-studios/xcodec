@@ -17,10 +17,8 @@ Please follow the following steps to setup your environment
 2. conda create --name xcodec2 python=3.9 
 3. conda activate xcodec2  
 2. `pip install -r requirements.txt`
-3. Download the pretrained checkpoint by
-```bash
-wget  
-```
+3. [Download the pretrained checkpoint here](https://huggingface.co/HKUST-Audio/xcodec2/blob/main/ckpt/epoch%3D4-step%3D1400000.ckpt)
+
 
 ## Inference
 ```bash
