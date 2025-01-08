@@ -24,7 +24,7 @@ The above cmd reconstruct all `.wav` files under the input directory and write t
 BigCodec extracts a single token to represent each frame of the utterance. Refer to `inference.py` to find how to get the code.
 
 ## Train
-To train a BigCodec, firstly you have to prepare your data 
+To train a XCodec2, firstly you have to prepare your data 
 
 1. Make a file list by:
 ```bash
