@@ -5,6 +5,7 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
 ## Directly used on Hugging Face
 
 **Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) 
+2025.01.09 I find a bug causing lower reconstruction quality compared to the command line version and are currently working on a fix.
 
 **LLaMa based TTS 3b version**: [Llasa-3B](https://huggingface.co/HKUST-Audio/Llasa-3B)
 
@@ -23,7 +24,7 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
   - Transformer + Vocos Decoder
   - DAC encoder
   - Spec discriminator with FFT sizes {78, 126, 206, 334, 542, 876, 1418, 2296} tailored for transformer decoder. [Details here](https://openreview.net/pdf?id=4YpMrGfldX)
-
+ 
 
 
 ##  Commandline Usage
