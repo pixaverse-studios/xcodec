@@ -19,7 +19,7 @@ from librosa.filters import mel as librosa_mel_fn
 from vq.codec_encoder import Codec_oobleck_Transformer
 from vq.codec_decoder import CodecDecoder_oobleck_Transformer
 import sys
-sys.path.append('./eval_tools/tools/speaker_verification')
+sys.path.append('./eval_tools/tools/speaker_verification')    # We use wavlm_large_finetune as a vadidation metric during training, https://github.com/microsoft/UniSpeech/tree/main/downstreams/speaker_verification
 from  verification import init_model
 model_spk = init_model('wavlm_large','/aifs4su/data/zheny/models_fd_ckpt/wavlm_large_finetune.pth')
 

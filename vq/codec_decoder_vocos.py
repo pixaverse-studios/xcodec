@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/aifs4su/data/zheny/bigcodec_final/BigCodec_conv_transformer_vocos')
+ 
 import numpy as np
 import torch
 import torch.nn as nn
