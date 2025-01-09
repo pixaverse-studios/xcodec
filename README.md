@@ -4,9 +4,8 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
 
 ## Directly used on Hugging Face
 
-**Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) (Please install updated version xcodec2==0.1.3)
+**Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) (Please install new version xcodec2==0.1.3)
  
-
 **LLaMa based TTS 3b version**: [Llasa-3B](https://huggingface.co/HKUST-Audio/Llasa-3B)
 
 
@@ -22,9 +21,9 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
 
 - **High-Quality Speech Reconstruction**
   - Transformer + Vocos Decoder
-  - DAC encoder
+  - BigCodec encoder
   - Spec discriminator with FFT sizes {78, 126, 206, 334, 542, 876, 1418, 2296} tailored for transformer decoder. [Details here](https://openreview.net/pdf?id=4YpMrGfldX)
- 
+  - Achieving UTMOS 4.13 WER 2.47 (hubert-large-ls960-ft)  sim 0.82 (wavlm_large_finetune) stoi 0.92  pesq-nb 3.05  pesq-wb 2.44 on librispeech-test-clean reconstruction (gt: WER 2.09 UTOMOS 4.09)
 
 
 ##  Commandline Usage
