@@ -24,10 +24,7 @@ Please follow the following steps to setup your environment
 ```bash
 python inference.py  
 ```
-The above cmd reconstruct all `.wav` files under the input directory and write the results to the output directory using the checkpoint.
-
-BigCodec extracts a single token to represent each frame of the utterance. Refer to `inference.py` to find how to get the code.
-
+ 
 ## Train
 To train a XCodec2, firstly you have to prepare your data 
 
