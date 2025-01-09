@@ -37,8 +37,7 @@ class CodecLightningModule(pl.LightningModule):
 
     def construct_model(self):
         # 初始化 Codec Encoder
-        self.n_time = int(self.cfg.preprocess.stft.hop_length/160.0)
-        input_dim = 80 * self.n_time
+ 
         enccfg = self.cfg.model.codec_encoder
 
  

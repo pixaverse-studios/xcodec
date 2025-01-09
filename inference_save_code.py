@@ -102,10 +102,10 @@ def save_vq_code(vq_codes: torch.Tensor, wav_paths: List[str], lengths: List[int
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--local-rank', type=int, default=0, help='本地 GPU 设备 ID')
-    parser.add_argument('--input-dir', type=str, default='/aifs4su/data/zheny/data/data_8_21_2', help='输入音频文件夹')
-    parser.add_argument('--flist_file', type=str, default='/aifs4su/data/zheny/bigcodec_final/v10_31_final_ml_semantic_real_baodi_perception_loss/henzadecode/11_8_libriheavy/all.txt', help='包含音频文件路径的tsv文件')
-    parser.add_argument('--ckpt', type=str, default='/aifs4su/data/zheny/bigcodec_final/logs_1020/v11_2/epoch=4-step=1400000.ckpt', help='模型检查点路径')
-    parser.add_argument('--output-dir', type=str, default='/aifs4su/data/zheny/data/data_8_21_2_codes/mls_all_11_5', help='输出音频文件夹')
+    parser.add_argument('--input-dir', type=str, default='/path/to/audio_folder', help='输入音频文件夹')
+    parser.add_argument('--flist_file', type=str, default='/path/to/file.txt', help='包含音频文件路径的tsv文件')
+    parser.add_argument('--ckpt', type=str, default='/path/to/epoch=4-step=1400000.ckpt', help='模型检查点路径')
+    parser.add_argument('--output-dir', type=str, default='/path/to/saving_code_folder', help='输出音频文件夹')
     parser.add_argument('--batch_size', type=int, default=6, help='批量大小')
     parser.add_argument('--num_workers', type=int, default=4, help='DataLoader 的工作线程数')
  
@@ -175,10 +175,10 @@ if __name__ == '__main__':
     fc_prior.to(device)
 
     # # 读取文件列表并分割为8个部分 
-    # df = pd.read_csv(args.flist_file, sep='\t', header=None, names=['filename', 'duration'], skiprows=1)
-    # file_list = df['filename'].tolist()
-    with open(args.flist_file, 'r') as f:
-        file_list = [line.strip() for line in f if line.strip()]
+    df = pd.read_csv(args.flist_file, sep='\t', header=None, names=['filename', 'duration'], skiprows=1)
+    file_list = df['filename'].tolist()
+    # with open(args.flist_file, 'r') as f:
+    #     file_list = [line.strip() for line in f if line.strip()]
 
     split_file_lists = np.array_split(file_list, 8)
 
