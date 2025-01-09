@@ -74,4 +74,4 @@ Codec will save in output folder with the same subfolder structure for audio fil
 
  
 ## Acknowledgement
-I would like to extend a special thanks to authors BigCodec, since our code base is mainly borrowed from  [BigCodec](https://github.com/Aria-K-Alethia/BigCodec).
+I would like to extend a special thanks to authors of BigCodec, since our code base is mainly borrowed from  [BigCodec](https://github.com/Aria-K-Alethia/BigCodec).
