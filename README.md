@@ -58,7 +58,7 @@ python get_tsv.py
 python train.py log_dir=/path/to/log_dir
 ```
 
-## Large scaling training and code extracting:
+## Large scale training and code extracting:
 
 Training
 ```bash
