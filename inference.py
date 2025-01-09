@@ -99,20 +99,21 @@ if __name__ == '__main__':
         wav = librosa.load(wav_path, sr=sr)[0] 
         wav_cpu = torch.from_numpy(wav)
 
-        feat =  feature_extractor(F.pad(wav_cpu, (160, 160)), sampling_rate=16000, return_tensors="pt") .data['input_features']
-
-        feat = feat.cuda()
+ 
         wav = wav_cpu.unsqueeze(0).cuda()
-        wav = torch.nn.functional.pad(wav, (0, (200 - (wav.shape[1] % 200))))
+        pad_for_wav = (320 - (wav.shape[1] % 320))
+ 
+        wav = torch.nn.functional.pad(wav, (0, pad_for_wav))
+
+        feat =  feature_extractor(F.pad(wav[0,:].cpu(), (160, 160)), sampling_rate=16000, return_tensors="pt") .data['input_features']
+        
+        feat = feat.cuda()
+
         with torch.no_grad():
             vq_emb = encoder(wav.unsqueeze(1))
             vq_emb = vq_emb.transpose(1, 2)
 
-            if vq_emb.shape[2]!=feat.shape[1]:
-                feat =  feature_extractor(wav_cpu, sampling_rate=16000, return_tensors="pt") .data['input_features']
-
-                feat = feat.cuda()
-
+ 
             semantic_target = semantic_model(feat[:,  :,:])
 
             semantic_target = semantic_target.hidden_states[16]
@@ -120,7 +121,6 @@ if __name__ == '__main__':
             semantic_target = semantic_target.transpose(1, 2)
             semantic_target = SemanticEncoder_module(semantic_target)
              
-
 
             vq_emb = torch.cat([semantic_target, vq_emb], dim=1)
             vq_emb =  fc_prior(vq_emb.transpose(1, 2)).transpose(1, 2)
