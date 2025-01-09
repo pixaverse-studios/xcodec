@@ -69,7 +69,7 @@ Code extracting
 Sbatch large_scale_save_code.sh
 ```
 
-Codec will save in output folder with the same subfolder structure for audio file.
+Code will save in output folder with the same subfolder structure for audio file.
 
 
  
