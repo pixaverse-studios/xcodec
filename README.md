@@ -4,7 +4,7 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
 
 ## Directly used on Hugging Face
 
-**Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2)  
+**Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) (Please install updated version xcodec2==0.1.3)
  
 
 **LLaMa based TTS 3b version**: [Llasa-3B](https://huggingface.co/HKUST-Audio/Llasa-3B)
