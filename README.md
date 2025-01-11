@@ -13,7 +13,7 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
 
 - **Single Vector Quantization**
   - 65536 Codebook Size using Finite Scalar Quantization achieving 99% codebook usage.
-  - 50 Tokens per Second
+  - 50x1 Tokens per Second
 
 - **Multilingual Speech Semantic Support**
   - Uses Wav2Vec2-BERT, a semantic encoder pre-trained on 4.5M hours of unlabeled audio data covering more than 143 languages.
