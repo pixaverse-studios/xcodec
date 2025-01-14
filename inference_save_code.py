@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    print(f'加载 codec checkpoint 从 {args.ckpt}')
+    print(f'loading codec checkpoint from {args.ckpt}')
     ckpt = torch.load(args.ckpt, map_location='cpu')
     ckpt = ckpt['state_dict']
 
