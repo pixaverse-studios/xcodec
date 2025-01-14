@@ -182,7 +182,7 @@ if __name__ == '__main__':
 
     split_file_lists = np.array_split(file_list, 8) #8 gpus
 
-    # 使用当前设备ID来获取其负责处理的文件部分
+ 
     device_id = device_id
     current_file_list = split_file_lists[device_id]
 
