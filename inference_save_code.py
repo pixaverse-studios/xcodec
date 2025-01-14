@@ -174,13 +174,13 @@ if __name__ == '__main__':
     fc_post_a.to(device)
     fc_prior.to(device)
 
-    # # 读取文件列表并分割为8个部分  flist_file can obtained using get_tsv.py
+    #  assume 8 gpus on your devices,   flist_file can obtained using get_tsv.py
     df = pd.read_csv(args.flist_file, sep='\t', header=None, names=['filename', 'duration'], skiprows=1)
     file_list = df['filename'].tolist()
     # with open(args.flist_file, 'r') as f:
     #     file_list = [line.strip() for line in f if line.strip()]
 
-    split_file_lists = np.array_split(file_list, 8)
+    split_file_lists = np.array_split(file_list, 8) #8 gpus
 
     # 使用当前设备ID来获取其负责处理的文件部分
     device_id = device_id
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     )
 
     st = time()
-    for batch in tqdm(dataloader, desc="处理音频批次"):
+    for batch in tqdm(dataloader, desc="processing"):
         wavs,feats,wav_paths, lengths = batch
         wavs = wavs.to(device)
 
@@ -221,4 +221,4 @@ if __name__ == '__main__':
         save_vq_code(vq_code, wav_paths, lengths, args.output_dir)
 
     et = time()
-    print(f'推理结束，时间: {(et - st)/60:.2f} 分钟')
+    print(f'End，time: {(et - st)/60:.2f} mins')
