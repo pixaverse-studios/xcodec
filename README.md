@@ -62,8 +62,12 @@ python get_tsv.py
 python train.py log_dir=/path/to/log_dir
 ```
 
-## Large scale training and code extracting:
+## Large-scale training, Batch inference and large-scale code extracting:
 
+Batch inference
+```bash
+python inference_save_code.py
+```
 Training
 ```bash
 Sbatch train_slurm.sh
