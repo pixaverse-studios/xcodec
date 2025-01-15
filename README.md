@@ -21,7 +21,7 @@ Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Sy
 
 - **Multilingual Speech Semantic Support**
   - Uses Wav2Vec2-BERT, a semantic encoder pre-trained on 4.5M hours of unlabeled audio data covering more than 143 languages.
-  - Codec trained on 100k hours of multilingual speech data, including Emilia (En/Zh/De/Fr/Ja/Ko) and MLS (En/Fr/De/Nl/Es/It/Pt/Pl).
+  - Codec trained on 150k hours of multilingual speech data, including Emilia (En/Zh/De/Fr/Ja/Ko) and MLS (En/Fr/De/Nl/Es/It/Pt/Pl).
 
 - **High-Quality Speech Reconstruction**
   - Transformer + Vocos Decoder
