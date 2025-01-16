@@ -1,5 +1,5 @@
 # X-Codec-2.0
-Paper: LLaSA: Scaling Train Time and Test Time Compute for LLaMA based Speech Synthesis (Comming Soon!)
+Paper: LLaSA: Scaling Train-time and Test-time Compute for LLaMA-based Speech Synthesis (Comming Soon!)
 
 
 ## Directly used on Hugging Face
