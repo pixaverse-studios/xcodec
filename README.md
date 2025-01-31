@@ -1,6 +1,5 @@
 # X-Codec-2.0
-Paper: LLaSA: Scaling Train-time and Test-time Compute for LLaMA-based Speech Synthesis (Comming Soon!)
-
+Paper: LLaSA: Scaling Train-time and Inference-time Compute for LLaMA-based Speech Synthesis  
 
 ## Directly used on Hugging Face
 
@@ -10,7 +9,7 @@ Paper: LLaSA: Scaling Train-time and Test-time Compute for LLaMA-based Speech Sy
 
 **LLaMA based TTS 1b version**: [Llasa-1B](https://huggingface.co/HKUST-Audio/Llasa-1B)
 
-**LLaMA based TTS 8b version**: [Llasa-8B](https://huggingface.co/HKUST-Audio/Llasa-8B) (Comming Soon!)
+**LLaMA based TTS 8b version**: [Llasa-8B](https://huggingface.co/HKUST-Audio/Llasa-8B)  
 
 
 ## Features
