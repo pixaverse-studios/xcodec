@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import pytorch_lightning as pl
-from vq import CodecEncoder, CodecDecoder, CodecDecoderVocos, CodecEncoder_Transformer,CodecEncoder_only_Transformer
+from vq import CodecEncoder, CodecDecoder, CodecDecoderVocos, CodecEncoder,CodecEncoder_only_Transformer
 from module import HiFiGANMultiPeriodDiscriminator, SpecDiscriminator
 from criterions import GANLoss, MultiResolutionMelSpectrogramLoss, MultiResolutionSTFTLoss
 from common.schedulers import WarmupLR
@@ -41,7 +41,7 @@ class CodecLightningModule(pl.LightningModule):
         enccfg = self.cfg.model.codec_encoder
 
  
-        self.CodecEnc = CodecEncoder_Transformer(
+        self.CodecEnc = CodecEncoder(
  
             ngf=enccfg.ngf,
             up_ratios=enccfg.up_ratios,

@@ -7,7 +7,7 @@ import soundfile as sf
 from glob import glob
 from tqdm import tqdm
 from os.path import basename, join, exists
-from vq.codec_encoder import CodecEncoder_Transformer
+from vq.codec_encoder import CodecEncoder
  
 from vq.codec_decoder_vocos import CodecDecoderVocos
 from argparse import ArgumentParser
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     SemanticEncoder_module.load_state_dict(filtered_state_dict_semantic_encoder)
     SemanticEncoder_module.eval()
 
-    encoder = CodecEncoder_Transformer()
+    encoder = CodecEncoder()
     encoder.load_state_dict(filtered_state_dict_codec)
     encoder.eval()
 
