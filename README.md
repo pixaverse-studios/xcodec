@@ -26,7 +26,7 @@ Paper: LLaSA: Scaling Train-time and Inference-time Compute for LLaMA-based Spee
   - Transformer + Vocos Decoder
   - BigCodec encoder
   - Spec discriminator with FFT sizes {78, 126, 206, 334, 542, 876, 1418, 2296} tailored for transformer decoder. [Details here](https://openreview.net/pdf?id=4YpMrGfldX)
-  - Achieving UTMOS 4.13 WER 2.47 (hubert-large-ls960-ft)  sim 0.82 (wavlm_large_finetune) stoi 0.92  pesq-nb 3.05  pesq-wb 2.44 on librispeech-test-clean reconstruction (gt: WER 2.09 UTMOS 4.09)
+  - Achieving UTMOS 4.13 WER 2.47 (hubert-large-ls960-ft)  sim 0.82 (wavlm_large_finetune) stoi 0.92  pesq-nb 3.05  pesq-wb 2.44 on librispeech-test-clean reconstruction (gt: WER 1.96 UTMOS 4.09)
   - Only for 16kHz speech
 
 
