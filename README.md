@@ -13,6 +13,8 @@ Paper: LLaSA: Scaling Train-time and Inference-time Compute for LLaMA-based Spee
 
 **Llasa 1b version**: [Llasa-1B](https://huggingface.co/HKUSTAudio/Llasa-1B)
 
+**Llasa 1b Multilingual version**: [Llasa-1B-Multilingual](https://huggingface.co/HKUSTAudio/Llasa-1B-Multilingual) (Not mentioned in the paper)
+
 **Llasa 3b version**: [Llasa-3B](https://huggingface.co/HKUSTAudio/Llasa-3B)
 
 **Llasa 8b version**: [Llasa-8B](https://huggingface.co/HKUSTAudio/Llasa-8B)  
