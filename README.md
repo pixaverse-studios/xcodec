@@ -1,6 +1,5 @@
 [![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2502.04128)
-
-
+ 
 # X-Codec-2.0
 Paper: LLaSA: Scaling Train-time and Inference-time Compute for LLaMA-based Speech Synthesis  
 
