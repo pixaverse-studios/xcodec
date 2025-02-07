@@ -10,11 +10,12 @@ Paper: LLaSA: Scaling Train-time and Inference-time Compute for LLaMA-based Spee
 
 **Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) (Please install new version xcodec2==0.1.3)
  
-**LLaMA based TTS 3b version**: [Llasa-3B](https://huggingface.co/HKUST-Audio/Llasa-3B)
 
-**LLaMA based TTS 1b version**: [Llasa-1B](https://huggingface.co/HKUST-Audio/Llasa-1B)
+**Llasa 1b version**: [Llasa-1B](https://huggingface.co/HKUSTAudio/Llasa-1B)
 
-**LLaMA based TTS 8b version**: [Llasa-8B](https://huggingface.co/HKUST-Audio/Llasa-8B)  
+**Llasa 3b version**: [Llasa-3B](https://huggingface.co/HKUSTAudio/Llasa-3B)
+
+**Llasa 8b version**: [Llasa-8B](https://huggingface.co/HKUSTAudio/Llasa-8B)  
 
 
 ## Features
