@@ -8,7 +8,7 @@ Paper: LLaSA: Scaling Train-time and Inference-time Compute for LLaMA-based Spee
 
 ## Directly used on Hugging Face
 
-**Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) (Please install new version xcodec2==0.1.3)
+**Codec**: [xcodec2](https://huggingface.co/HKUST-Audio/xcodec2) (Use `xcodec2==0.1.5` for codec inference and llasa fine-tuning. I’ve removed unnecessary dependencies, and it works fine in my testing. However,  I’m not sure if other problems may arise. If you prefer more stability, I recommend using `xcodec2==0.1.3` which accurately aligns during my codec training.)
  
 
 **Llasa 1b version**: [Llasa-1B](https://huggingface.co/HKUSTAudio/Llasa-1B)
