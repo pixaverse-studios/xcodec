@@ -1,4 +1,5 @@
 import os
+ 
 import random
 import hydra
 import numpy as np
@@ -8,16 +9,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import pytorch_lightning as pl
-from vq import CodecEncoder, CodecDecoder, CodecDecoderVocos, CodecEncoder,CodecEncoder_only_Transformer
+from vq import CodecEncoder,  CodecDecoderVocos 
 from module import HiFiGANMultiPeriodDiscriminator, SpecDiscriminator
 from criterions import GANLoss, MultiResolutionMelSpectrogramLoss, MultiResolutionSTFTLoss
 from common.schedulers import WarmupLR
 from transformers import AutoModel
 from vq.module import SemanticDecoder,SemanticEncoder
-from transformers import AutoFeatureExtractor, Wav2Vec2BertModel
-from librosa.filters import mel as librosa_mel_fn
-from vq.codec_encoder import Codec_oobleck_Transformer
-from vq.codec_decoder import CodecDecoder_oobleck_Transformer
+ 
 import sys
 sys.path.append('./eval_tools/tools/speaker_verification')    # We use wavlm_large_finetune as a vadidation metric during training, https://github.com/microsoft/UniSpeech/tree/main/downstreams/speaker_verification
 from  verification import init_model
