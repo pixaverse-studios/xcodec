@@ -15,7 +15,7 @@ from criterions import GANLoss, MultiResolutionMelSpectrogramLoss, MultiResoluti
 from common.schedulers import WarmupLR
 from transformers import AutoModel
 from vq.module import SemanticDecoder,SemanticEncoder
- 
+from transformers import AutoFeatureExtractor, Wav2Vec2BertModel
 import sys
 sys.path.append('./eval_tools/tools/speaker_verification')    # We use wavlm_large_finetune as a vadidation metric during training, https://github.com/microsoft/UniSpeech/tree/main/downstreams/speaker_verification
 from  verification import init_model
