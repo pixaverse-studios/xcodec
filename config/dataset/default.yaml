@@ -1,20 +1,20 @@
 dataset:
-  _target_: data_module.FSDataset_add_STFT
+  _target_: data_module.StandardAudioDataset
+  name: librispeech  # Name of the processed dataset
+  root: ./data  # Root directory containing processed datasets
 
 train:
-  filelist: ./data/librispeech_train.tsv
   batch_size: 8
   shuffle: true
 
 val:
-  filelist: ./data/librispeech_dev.tsv
-  batch_size:  8
+  batch_size: 8
   shuffle: false
 
 test:
-  filelist: ./data/librispeech_test.tsv
   batch_size: 1
   shuffle: false
+
 padding_idx: 0
 frame_length: 200
 min_audio_length: 96000

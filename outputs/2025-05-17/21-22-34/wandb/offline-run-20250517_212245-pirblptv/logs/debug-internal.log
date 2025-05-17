@@ -1,0 +1,15 @@
+{"time":"2025-05-17T21:22:45.072483603Z","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"wandb/offline-run-20250517_212245-pirblptv/logs/debug-core.log"}
+{"time":"2025-05-17T21:22:45.181587524Z","level":"WARN","msg":"GraphQL client is nil, skipping feature loading"}
+{"time":"2025-05-17T21:22:45.181749568Z","level":"INFO","msg":"created new stream","id":"pirblptv"}
+{"time":"2025-05-17T21:22:45.181773263Z","level":"INFO","msg":"stream: started","id":"pirblptv"}
+{"time":"2025-05-17T21:22:45.181806816Z","level":"INFO","msg":"sender: started","stream_id":"pirblptv"}
+{"time":"2025-05-17T21:22:45.181808148Z","level":"INFO","msg":"writer: Do: started","stream_id":"pirblptv"}
+{"time":"2025-05-17T21:22:45.181850618Z","level":"INFO","msg":"handler: started","stream_id":"pirblptv"}
+{"time":"2025-05-17T21:22:45.469755511Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-17T21:22:49.499748223Z","level":"INFO","msg":"stream: closing","id":"pirblptv"}
+{"time":"2025-05-17T21:22:49.499825598Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-17T21:22:49.499946976Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-17T21:22:49.500133696Z","level":"INFO","msg":"handler: closed","stream_id":"pirblptv"}
+{"time":"2025-05-17T21:22:49.500149556Z","level":"INFO","msg":"writer: Close: closed","stream_id":"pirblptv"}
+{"time":"2025-05-17T21:22:49.500155527Z","level":"INFO","msg":"sender: closed","stream_id":"pirblptv"}
+{"time":"2025-05-17T21:22:49.500273779Z","level":"INFO","msg":"stream: closed","id":"pirblptv"}

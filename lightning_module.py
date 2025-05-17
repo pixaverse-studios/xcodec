@@ -9,17 +9,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import pytorch_lightning as pl
+
 from vq import CodecEncoder,  CodecDecoderVocos 
+
 from module import HiFiGANMultiPeriodDiscriminator, SpecDiscriminator
+
 from criterions import GANLoss, MultiResolutionMelSpectrogramLoss, MultiResolutionSTFTLoss
+
 from common.schedulers import WarmupLR
+
 from transformers import AutoModel
+
 from vq.module import SemanticDecoder,SemanticEncoder
 from transformers import AutoFeatureExtractor, Wav2Vec2BertModel
 import sys
-sys.path.append('./eval_tools/tools/speaker_verification')    # We use wavlm_large_finetune as a vadidation metric during training, https://github.com/microsoft/UniSpeech/tree/main/downstreams/speaker_verification
+
+sys.path.append('../UniSpeech/downstreams/speaker_verification') 
+   # We use wavlm_large_finetune as a vadidation metric during training, https://github.com/microsoft/UniSpeech/tree/main/downstreams/speaker_verification
 from  verification import init_model
-model_spk = init_model('wavlm_large','/aifs4su/data/zheny/models_fd_ckpt/wavlm_large_finetune.pth')
+
+model_spk = init_model('wavlm_large','../UniSpeech/downstreams/speaker_verification/checkpoints/wavlm_large_finetune.pth')
 
 
 

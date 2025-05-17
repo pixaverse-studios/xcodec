@@ -1,11 +1,11 @@
 datasets:
     LibriSpeech:
-        root: /aifs4su/data/zheny/data/data_8_21_2/ 
+        root: ./data/LibriSpeech
         trainsets: ['dev', 'test','train']
         testsets: ['test-clean']
 view:
-    train_filelist: /aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_higher_quality.txt
-    test_filelist: /aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_test.txt
+    train_filelist: ./data/librispeech_train.tsv
+    test_filelist: ./data/librispeech_test.tsv
 audio:
   sr: 16000
   normalization: False

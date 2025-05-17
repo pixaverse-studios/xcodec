@@ -19,7 +19,7 @@ from omegaconf import OmegaConf
 seed = 1024
 seed_everything(seed)
  
-@hydra.main(config_path='config', config_name='default', version_base=None)
+@hydra.main(config_path='config', config_name='default')
 def train(cfg):
     checkpoint_callback = ModelCheckpoint(dirpath=cfg.log_dir, 
                             save_top_k=-1, save_last=True,

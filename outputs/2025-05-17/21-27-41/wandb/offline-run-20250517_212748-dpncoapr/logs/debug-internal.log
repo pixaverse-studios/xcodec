@@ -1,0 +1,15 @@
+{"time":"2025-05-17T21:27:48.797334518Z","level":"INFO","msg":"stream: starting","core version":"0.19.11","symlink path":"wandb/offline-run-20250517_212748-dpncoapr/logs/debug-core.log"}
+{"time":"2025-05-17T21:27:48.905945141Z","level":"WARN","msg":"GraphQL client is nil, skipping feature loading"}
+{"time":"2025-05-17T21:27:48.90616293Z","level":"INFO","msg":"created new stream","id":"dpncoapr"}
+{"time":"2025-05-17T21:27:48.906196353Z","level":"INFO","msg":"stream: started","id":"dpncoapr"}
+{"time":"2025-05-17T21:27:48.906213415Z","level":"INFO","msg":"writer: Do: started","stream_id":"dpncoapr"}
+{"time":"2025-05-17T21:27:48.906245676Z","level":"INFO","msg":"sender: started","stream_id":"dpncoapr"}
+{"time":"2025-05-17T21:27:48.90631183Z","level":"INFO","msg":"handler: started","stream_id":"dpncoapr"}
+{"time":"2025-05-17T21:27:49.100418308Z","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-05-17T21:27:58.274450541Z","level":"INFO","msg":"stream: closing","id":"dpncoapr"}
+{"time":"2025-05-17T21:27:58.274498721Z","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-05-17T21:27:58.274555929Z","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-05-17T21:27:58.274654223Z","level":"INFO","msg":"handler: closed","stream_id":"dpncoapr"}
+{"time":"2025-05-17T21:27:58.274662819Z","level":"INFO","msg":"writer: Close: closed","stream_id":"dpncoapr"}
+{"time":"2025-05-17T21:27:58.274695771Z","level":"INFO","msg":"sender: closed","stream_id":"dpncoapr"}
+{"time":"2025-05-17T21:27:58.274952995Z","level":"INFO","msg":"stream: closed","id":"dpncoapr"}

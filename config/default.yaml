@@ -3,7 +3,7 @@ defaults:
   - dataset: default
   - model: default
   - train: default
-log_dir: /aifs4su/data/zheny/bigcodec_final/logs_1020/v10_31
+log_dir: ./logs
 debug: false
 ckpt: null # infer
 input_dir: null # infer

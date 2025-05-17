@@ -1,0 +1,24 @@
+# constraints.txt  ── every top-level dependency is frozen ──────────
+# core
+fairseq==0.12.2
+hydra-core==1.0.7
+omegaconf==2.0.6
+
+# logging
+tensorboard==2.14.0
+tensorboardX==2.5
+protobuf==3.20.3
+
+# PyTorch stack (CUDA 12.1)
+torch==2.3.1+cu121
+torchaudio==2.3.1+cu121
+
+# numpy window that works with Pillow / transformers / s3prl
+numpy==1.23.5
+
+# 🤗 Transformers – last version that does not need torch 2.4
+transformers==4.39.3
+
+# s3prl – *exactly what you installed*: latest `main`
+#   (If you want today’s main again tomorrow, pin a commit hash instead.)
+s3prl @ git+https://github.com/s3prl/s3prl.git@main
