@@ -5,7 +5,7 @@ import torch
 from tqdm import tqdm
 
 def process_file(args):
-    file_path, root_dir = args  # 解包传入的参数
+    file_path, root_dir = args  
     try:
         rel_path = os.path.relpath(file_path, start=root_dir)
         waveform, sample_rate = torchaudio.load(file_path)
@@ -52,9 +52,34 @@ def list_audio_files(root_dir, output_file, exclude_dirs=None):
             if result:  # 只有当result不为None时才写入文件
                 file.write(result)
 
-# 示例使用
-root_directory = '/aifs4su/data/zheny/data/data_8_21_2'
-output_tsv = '/aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_higher_quality.txt'
-exclude_folders = ['/aifs4su/data/zheny/data/data_8_21_2/test-clean']
+# # 示例使用
+# root_directory = '/aifs4su/data/zheny/data/data_8_21_2'
+# output_tsv = '/aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_higher_quality.txt'
+# exclude_folders = ['/aifs4su/data/zheny/data/data_8_21_2/test-clean']
 
-list_audio_files(root_directory, output_tsv, exclude_dirs=exclude_folders)
+# list_audio_files(root_directory, output_tsv, exclude_dirs=exclude_folders)
+
+if __name__ == "__main__":
+    librispeech_base_dir = "./data/LibriSpeech"  # Base directory where data.py extracts LibriSpeech
+    
+    splits = {
+        "train": "train-clean-100",
+        "dev": "dev-clean",
+        "test": "test-clean"
+    }
+
+    os.makedirs("./data", exist_ok=True) # Ensure ./data directory exists for output TSVs
+
+    for split_name, split_folder in splits.items():
+        root_directory = os.path.join(librispeech_base_dir, split_folder)
+        output_tsv = os.path.join("./data", f"librispeech_{split_name}.tsv")
+        
+        if os.path.exists(root_directory):
+            print(f"Processing LibriSpeech {split_name} split from: {root_directory}")
+            list_audio_files(root_directory, output_tsv, exclude_dirs=None) # No specific excludes for LibriSpeech for now
+            print(f"Finished processing. TSV file saved to: {output_tsv}")
+        else:
+            print(f"Directory not found for LibriSpeech {split_name} split: {root_directory}")
+            print(f"Please ensure you have run data.py to download and extract LibriSpeech.")
+    
+    print("\nFinished generating TSV files for LibriSpeech.")

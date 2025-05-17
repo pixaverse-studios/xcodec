@@ -2,17 +2,17 @@ dataset:
   _target_: data_module.FSDataset_add_STFT
 
 train:
-  filelist: /aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_higher_quality.txt
+  filelist: ./data/librispeech_train.tsv
   batch_size: 8
   shuffle: true
 
 val:
-  filelist: /aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_test.txt
+  filelist: ./data/librispeech_dev.tsv
   batch_size:  8
   shuffle: false
 
 test:
-  filelist: /aifs4su/data/zheny/data/data_8_21_2/mls_all_audio_path_test.txt
+  filelist: ./data/librispeech_test.tsv
   batch_size: 1
   shuffle: false
 padding_idx: 0
