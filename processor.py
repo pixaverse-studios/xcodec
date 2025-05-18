@@ -41,7 +41,7 @@ def update_dataset_registry(output_base_dir, dataset_name, metadata):
         "last_updated": datetime.datetime.now().isoformat(),
         "stats": {
             "train_samples": len([f for f in metadata.get("files", []) if f.get("split") == "train"]),
-            "val_samples": len([f for f in metadata.get("files", []) if f.get("split") == "val"]), 
+            "val_samples": len([f for f in metadata.get("files", []) if f.get("split") == "val"]),
             "test_samples": len([f for f in metadata.get("files", []) if f.get("split") == "test"])
         }
     }
@@ -79,9 +79,9 @@ def standardize_audio(input_path, output_path, target_sr=16000):
 def process_dataset(input_dir, output_dir, dataset_name, split_name, output_base_dir):
     """Generic dataset processor that standardizes any audio dataset"""
     os.makedirs(output_dir, exist_ok=True)
-    audio_dir = os.path.join(output_dir, "audio") 
+    audio_dir = os.path.join(output_dir, "audio")
     os.makedirs(audio_dir, exist_ok=True)
-
+    
     metadata = {
         "dataset": dataset_name,
         "splits": {},
@@ -89,7 +89,7 @@ def process_dataset(input_dir, output_dir, dataset_name, split_name, output_base
         "audio_format": "wav",
         "files": []
     }
-
+    
     processed_files = []
     
     # Walk through all audio files recursively
@@ -108,7 +108,7 @@ def process_dataset(input_dir, output_dir, dataset_name, split_name, output_base
                 duration = standardize_audio(src_path, dst_path)
                 if duration is None:
                     continue
-
+                    
                 # Determine split (can be customized per dataset)
                 if "train" in root.lower():
                     split = "train"
@@ -119,36 +119,36 @@ def process_dataset(input_dir, output_dir, dataset_name, split_name, output_base
                 else:
                     split = "train" # Default to train
 
-                file_info = {
+                        file_info = {
                     "original_path": os.path.relpath(src_path, input_dir),
-                    "path": os.path.join("audio", std_name),
-                    "duration": duration,
+                            "path": os.path.join("audio", std_name),
+                            "duration": duration,
                     "split": split
-                }
-
-                processed_files.append(file_info)
-                metadata["files"].append(file_info)
+                        }
+                        
+                        processed_files.append(file_info)
+                        metadata["files"].append(file_info)
                 metadata["splits"][split] = split
-
+                        
     # Save metadata
     with open(os.path.join(output_dir, "metadata.json"), 'w') as f:
         json.dump(metadata, f, indent=2)
-
+    
     # Update registry
     update_dataset_registry(output_base_dir, dataset_name, metadata)
-
+    
     # Create TSV files
     splits = {"train": [], "val": [], "test": []}
     for file_info in processed_files:
         splits[file_info["split"]].append(file_info)
-
+    
     for split, files in splits.items():
         if not files:
             continue
         with open(os.path.join(output_dir, f"{split}.tsv"), 'w') as f:
             for fi in files:
                 f.write(f"{fi['path']}\t{fi['duration']}\n")
-
+                
     print(f"Processed {len(processed_files)} files from {dataset_name}")
     return output_dir
 
@@ -199,4 +199,4 @@ def main():
     print(f"Use this dataset by setting 'name: {args.dataset}' in your config file")
 
 if __name__ == "__main__":
-    main()
+    main() 

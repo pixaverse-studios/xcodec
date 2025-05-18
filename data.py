@@ -1,134 +1,153 @@
-import os, tarfile, shutil, requests, concurrent.futures as cf
-from pathlib import Path
+import os
+import wget
+import tarfile
+import concurrent.futures
+import requests
+import shutil
 from tqdm import tqdm
-from datasets import load_dataset
+from datasets import load_dataset, Audio
+import torchaudio, torch
 
-# --------------------------------------------------------------------------
-DATA_DIR       = Path("data")
-TOTAL_SAMPLES  = 2_000_000        # 2 million samples
-MAX_WORKERS    = 64
-CHUNK          = 1 << 20          # 1 MiB
-SPLIT_RATIOS   = (0.98, 0.01, 0.01)
-# --------------------------------------------------------------------------
+def download_file(url, path):
+    """Download a file with progress bar and better chunk size"""
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    block_size = 1024*1024  # Increased to 1MB chunks for better throughput
 
-# one global HTTP session
-SESSION = requests.Session()
-ADAPTER = requests.adapters.HTTPAdapter(pool_connections=MAX_WORKERS*2,
-                                        pool_maxsize=MAX_WORKERS*2,
-                                        max_retries=3)
-SESSION.mount("http://", ADAPTER)
-SESSION.mount("https://", ADAPTER)
+    # Set TCP keepalive and larger receive buffer
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=100,
+        pool_maxsize=100,
+        max_retries=3,
+        pool_block=False
+    )
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    
+    response = session.get(url, stream=True)
 
+    with open(path, 'wb') as f, tqdm(
+        desc=os.path.basename(path),
+        total=total_size,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as pbar:
+        for data in response.iter_content(block_size):
+            size = f.write(data)
+            pbar.update(size)
 
-def idx_to_split(i: int) -> str:
-    r = hash(str(i)) / 2**32
-    return "train" if r < SPLIT_RATIOS[0] else \
-           "val"   if r < sum(SPLIT_RATIOS[:2]) else "test"
-
-
-def download_one(args):
-    """Download __url__ to local disk –   returns (ok, idx, path)."""
-    idx, item, audio_dir = args
+def save_laion_item_locally(item_dict, index, audio_dir_base, split_dirs_base, split_ratios):
+    """
+    Processes a single item from the LAION dataset.
+    - Determines train/val/test split.
+    - Saves the audio array directly as a WAV file.
+    - Creates a .txt manifest entry.
+    """
     try:
-        url = item["__url__"]                # <- fast path
-        ext = os.path.splitext(url)[1] or ".mp3"
-        tgt = audio_dir / f"laion_{idx:09d}{ext}"
+        current_split = "train" # Default
+        rand_val = hash(str(index)) / 2**32 # Use index for deterministic split
+        if rand_val < split_ratios[0]:
+            current_split = "train"
+        elif rand_val < sum(split_ratios[:2]):
+            current_split = "val"
+        else:
+            current_split = "test"
 
-        if tgt.exists():                     # already there
-            return True, idx, tgt
+        audio_feature = item_dict.get("audio.mp3")
 
-        r = SESSION.get(url, stream=True, timeout=30)
-        r.raise_for_status()
-        tmp = tgt.with_suffix(tgt.suffix + ".part")
-        with tmp.open("wb") as f:
-            for chunk in r.iter_content(CHUNK):
-                if chunk:
-                    f.write(chunk)
-        tmp.rename(tgt)
-        return True, idx, tgt
-    except Exception:
-        return False, idx, None
+        if audio_feature is None or not isinstance(audio_feature, dict) or \
+           "array" not in audio_feature or "sampling_rate" not in audio_feature:
+            print(f"Skipping sample {index}: 'audio.mp3' field missing, malformed, or lacks 'array'/'sampling_rate'. Keys: {list(item_dict.keys())}")
+            if isinstance(audio_feature, dict):
+                 print(f"Audio feature keys: {list(audio_feature.keys())}")
+            return None # Indicate failure to process
 
+        audio_filename = f"laion_{index:09d}.wav" # Always save as WAV now
+        audio_path = os.path.join(audio_dir_base, audio_filename)
 
-def download_laion():
-    print("⇣  streaming metadata …")
-    ds = load_dataset("laion/LAION-Audio-300M",
-                      split="train", streaming=True)
+        try:
+            # Directly save from array
+            wav_arr = torch.from_numpy(audio_feature["array"]).unsqueeze(0)
+            sr = audio_feature["sampling_rate"] # Already checked for presence
+            torchaudio.save(audio_path, wav_arr, sr)
+            # print(f"Sample {index}: Saved directly from array as WAV.") # Optional: for verbose logging
+        except Exception as save_exc:
+            print(f"Direct WAV save failed for sample {index}: {save_exc}")
+            return None # Indicate failure to process
 
-    laion_root = DATA_DIR / "laion"
-    audio_dir  = laion_root / "audio"
-    split_dirs = {s: laion_root / s for s in ("train", "val", "test")}
-    audio_dir.mkdir(parents=True, exist_ok=True)
-    for p in split_dirs.values():
-        p.mkdir(parents=True, exist_ok=True)
+        # Create entry in split directory using the determined audio_filename
+        split_path = os.path.join(split_dirs_base[current_split], f"{os.path.splitext(audio_filename)[0]}.txt")
+        with open(split_path, "w") as f:
+            f.write(f"{audio_path}\n")
 
-    done = 0
-    with cf.ThreadPoolExecutor(MAX_WORKERS) as pool, \
-         tqdm(total=TOTAL_SAMPLES, unit="file") as bar:
+        return audio_path # Indicate success by returning path
 
-        futures = set()
-        for idx, item in enumerate(ds):
-            if done >= TOTAL_SAMPLES:
+    except Exception as e:
+        # This outer try-except catches errors in split determination or other unexpected issues
+        print(f"Error processing sample {index} (outer try-except): {e}. Item keys: {list(item_dict.keys())}")
+        return None
+
+def download_and_extract_datasets():
+    data_dir = "data"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    # Download LAION dataset first
+    print("\nProcessing LAION-Audio dataset...")
+    laion_dir_base = os.path.join(data_dir, "laion")
+    audio_dir_base = os.path.join(laion_dir_base, "audio")
+    os.makedirs(audio_dir_base, exist_ok=True)
+
+    # Create splits directories
+    split_ratios = [0.98, 0.01, 0.01]
+    split_names = ["train", "val", "test"]
+    split_dirs_base = {name: os.path.join(laion_dir_base, name) for name in split_names}
+    for d_path in split_dirs_base.values():
+        os.makedirs(d_path, exist_ok=True)
+
+1    # Stream and download all LAION samples
+    print("Streaming LAION-Audio-300M samples...")
+    ds = load_dataset("laion/LAION-Audio-300M", split="train", streaming=True, trust_remote_code=True)
+    ds = ds.shuffle(buffer_size=10_000, seed=42)
+    
+    processed_count = 0
+    total_samples_to_process = 220_000_000 # Process 220M samples from LAION
+    # To process all, remove .take() and adjust tqdm if desired
+    ds_iterable = ds.take(total_samples_to_process) 
+    
+    print(f"Downloading and saving LAION samples directly as WAVs...")
+    with tqdm(total=total_samples_to_process, desc="Processing LAION samples") as pbar:
+        for i, item in enumerate(ds_iterable):
+            if save_laion_item_locally(item, i, audio_dir_base, split_dirs_base, split_ratios):
+                processed_count +=1
+            pbar.update(1)
+            # The loop will naturally break if ds_iterable is from .take()
+            # If processing full ds, you might want a counter for max_samples_to_process
+            if i >= total_samples_to_process -1 and total_samples_to_process > 0 : 
                 break
 
-            futures.add(pool.submit(download_one, (idx, item, audio_dir)))
 
-            while len(futures) >= MAX_WORKERS * 4:
-                finished, futures = cf.wait(futures,
-                                            return_when=cf.FIRST_COMPLETED)
-                for fut in finished:
-                    ok, i, path = fut.result()
-                    if ok:
-                        split = idx_to_split(i)
-                        (split_dirs[split] / f"{path.stem}.txt").write_text(
-                            str(path) + "\n"
-                        )
-                        done += 1
-                        bar.update(1)
-                    if done >= TOTAL_SAMPLES:
-                        break
+    print(f"\nLAION dataset processing complete! Processed {processed_count} samples as WAV.")
 
-        # drain remaining
-        for fut in cf.as_completed(futures):
-            ok, i, path = fut.result()
-            if ok:
-                split = idx_to_split(i)
-                (split_dirs[split] / f"{path.stem}.txt").write_text(
-                    str(path) + "\n"
-                )
-                done += 1
-                bar.update(1)
-            if done >= TOTAL_SAMPLES:
-                break
-
-    print(f"\n✅  downloaded {done:,} MP3 files to {audio_dir}")
-
-
-# --------------------------------------------------------------------------
-# LibriSpeech (unchanged)
-# --------------------------------------------------------------------------
-def download_librispeech():
-    url      = "https://www.openslr.org/resources/12/train-other-500.tar.gz"
-    tar_path = DATA_DIR / "train-other-500.tar.gz"
-
-    if not tar_path.exists():
-        with SESSION.get(url, stream=True) as r, tar_path.open("wb") as f, \
-             tqdm(total=int(r.headers.get("content-length", 0)),
-                  unit="iB", unit_scale=True, desc="train-other-500.tar.gz") as bar:
-            for chunk in r.iter_content(CHUNK):
-                if chunk:
-                    f.write(chunk)
-                    bar.update(len(chunk))
-
-    print("⇡  extracting LibriSpeech …")
-    with tarfile.open(tar_path, bufsize=CHUNK) as tar:
-        for member in tqdm(tar.getmembers(), unit="file"):
-            tar.extract(member, DATA_DIR)
-
-    tar_path.unlink(missing_ok=True)
-    print("🎉  LibriSpeech ready")
-
+    # --- LibriSpeech (train-other-500) ---
+    librispeech_url = 'https://www.openslr.org/resources/12/train-other-500.tar.gz'
+    print("\nProcessing LibriSpeech dataset...")
+    print("\nDownloading train-other-500...")
+    
+    tar_path = os.path.join(data_dir, "train-other-500.tar.gz")
+    if not os.path.exists(tar_path):
+        download_file(librispeech_url, tar_path) # download_file defined earlier
+    
+    print(f"\nExtracting train-other-500...")
+    with tarfile.open(tar_path, bufsize=1024*1024) as tar:
+        members = tar.getmembers()
+        for member in tqdm(members, desc="Extracting train-other-500"):
+            tar.extract(member, data_dir)
+    
+    os.remove(tar_path)
+    print("\nLibriSpeech download and extraction complete!")
 
 if __name__ == "__main__":
-    download_laion()          # fast LAION downloader
-    download_librispeech()    # comment this line if you don't need it
+    download_and_extract_datasets()

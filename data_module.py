@@ -46,11 +46,11 @@ class DataModule(pl.LightningDataModule):
 
         dl = DataLoader(
             ds,
-            batch_size=batch_size,
-            shuffle=phase_cfg.shuffle,
-            num_workers=16,
-            collate_fn=ds.collate_fn,
-            pin_memory=True,
+                        batch_size=batch_size,
+                        shuffle=phase_cfg.shuffle,
+                        num_workers=16,
+                        collate_fn=ds.collate_fn,
+                        pin_memory=True,
             persistent_workers=True,
         )
         return dl
@@ -66,7 +66,7 @@ class DataModule(pl.LightningDataModule):
 
 class StandardAudioDataset(Dataset):
     """Dataset for loading a single standardized dataset (LibriSpeech, LAION, etc.).
-
+    
     A *dataset_name* override is accepted so that multiple datasets can be
     combined without having to clone the whole Hydra config object.
     """
