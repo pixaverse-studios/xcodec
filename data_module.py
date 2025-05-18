@@ -9,13 +9,17 @@ import pytorch_lightning as pl
 import random
 import librosa
 import json
+import hydra
 from os.path import basename, exists, join
 from torch.utils.data import Dataset, DataLoader
-import hydra
 import utils
 from transformers import AutoFeatureExtractor
 from torchaudio.transforms import Resample
 from tqdm import tqdm
+
+# new for CombinedAudioDataset
+from itertools import accumulate
+import bisect
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, cfg):
@@ -23,17 +27,32 @@ class DataModule(pl.LightningDataModule):
         self.cfg = cfg
         self.ocwd = hydra.utils.get_original_cwd()
 
+    # --------------------------------------------------------------
+    # internal
+    # --------------------------------------------------------------
+
+    def _build_dataset(self, phase):
+        # If config supplies a *names* list => combined dataset
+        if hasattr(self.cfg.dataset, 'names'):
+            return CombinedAudioDataset(phase, self.cfg)
+        else:
+            return StandardAudioDataset(phase, self.cfg)
+
     def get_loader(self, phase):
         phase_cfg = self.cfg.dataset.get(phase)
         batch_size = phase_cfg.batch_size
-        ds = StandardAudioDataset(phase, self.cfg)
-        dl = DataLoader(ds, 
-                        batch_size=batch_size,
-                        shuffle=phase_cfg.shuffle,
-                        num_workers=16,
-                        collate_fn=ds.collate_fn,
-                        pin_memory=True,
-                        persistent_workers=True)
+
+        ds = self._build_dataset(phase)
+
+        dl = DataLoader(
+            ds,
+            batch_size=batch_size,
+            shuffle=phase_cfg.shuffle,
+            num_workers=16,
+            collate_fn=ds.collate_fn,
+            pin_memory=True,
+            persistent_workers=True,
+        )
         return dl
 
     def train_dataloader(self):
@@ -46,11 +65,12 @@ class DataModule(pl.LightningDataModule):
         return self.get_loader('test')
 
 class StandardAudioDataset(Dataset):
-    """Dataset for loading standardized audio data
-    
-    Works with the standardized format created by processor.py
+    """Dataset for loading a single standardized dataset (LibriSpeech, LAION, etc.).
+
+    A *dataset_name* override is accepted so that multiple datasets can be
+    combined without having to clone the whole Hydra config object.
     """
-    def __init__(self, phase, cfg):
+    def __init__(self, phase, cfg, dataset_name: str | None = None):
         self.phase = phase
         self.cfg = cfg
         self.phase_cfg = cfg.dataset.get(phase)
@@ -58,7 +78,9 @@ class StandardAudioDataset(Dataset):
         
         # Get dataset config - default to "librispeech" if not specified
         # This handles older config files that don't have dataset.name
-        if hasattr(cfg.dataset, 'name'):
+        if dataset_name is not None:
+            self.dataset_name = dataset_name
+        elif hasattr(cfg.dataset, 'name'):
             self.dataset_name = cfg.dataset.name
         else:
             print("No dataset name specified in config, defaulting to 'librispeech'")
@@ -233,6 +255,61 @@ class StandardAudioDataset(Dataset):
             'paths': paths
         }
         return out
+
+# -----------------------------------------------------------------------------
+# Support for training on MULTIPLE datasets simultaneously
+# -----------------------------------------------------------------------------
+
+class CombinedAudioDataset(Dataset):
+    """Concatenate several StandardAudioDataset instances.
+
+    Example in config:
+
+    dataset:
+      names: [librispeech, laion]
+
+    This class keeps each sub-dataset's own TSV list but exposes a flat index-space.
+    """
+
+    def __init__(self, phase: str, cfg):
+        from copy import deepcopy
+        from itertools import accumulate
+
+        self.subsets = []
+        self.cum_lens = []
+
+        dataset_names = list(cfg.dataset.names)
+
+        total = 0
+        for name in dataset_names:
+            cfg_single = deepcopy(cfg)
+            cfg_single.dataset.name = name
+            subset = StandardAudioDataset(phase, cfg_single, dataset_name=name)
+            self.subsets.append(subset)
+            total += len(subset)
+            self.cum_lens.append(total)
+
+        # Re-use collate_fn from first subset (identical across all)
+        self._collate_fn = self.subsets[0].collate_fn if self.subsets else lambda x: x
+
+    # ------------------------------------------------------------------
+    # PyTorch Dataset API
+    # ------------------------------------------------------------------
+
+    def __len__(self):
+        return self.cum_lens[-1] if self.cum_lens else 0
+
+    def __getitem__(self, idx):
+        # binary search for subset index
+        import bisect
+        subset_idx = bisect.bisect_right(self.cum_lens, idx)
+        previous_cum = 0 if subset_idx == 0 else self.cum_lens[subset_idx - 1]
+        local_idx = idx - previous_cum
+        return self.subsets[subset_idx][local_idx]
+
+    # expose collate_fn so DataLoader can use it
+    def collate_fn(self, batch):
+        return self._collate_fn(batch)
 
 @hydra.main(config_path='config', config_name='default')
 def main(cfg):

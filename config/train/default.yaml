@@ -1,7 +1,7 @@
 trainer:
   accelerator: 'gpu'
   num_nodes: 1
-  devices: 2
+  devices: 4
   min_steps: 3000000
   max_steps: 3000000
   precision: 16-mixed

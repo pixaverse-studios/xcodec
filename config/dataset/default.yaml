@@ -1,6 +1,9 @@
 dataset:
   _target_: data_module.StandardAudioDataset
-  name: librispeech  # Name of the processed dataset
+  # Either specify *name* for a single corpus **or** *names* as a list for
+  # multi-corpus training.  Example: names: [librispeech, laion]
+  name: librispeech
+  # names: [librispeech, laion]
   root: ./data  # Root directory containing processed datasets
 
 train:

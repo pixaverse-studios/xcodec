@@ -35,7 +35,7 @@ class DataModule(pl.LightningDataModule):
         dl = DataLoader(ds, 
                         batch_size=batch_size,
                         shuffle=phase_cfg.shuffle,
-                        num_workers=28,
+                        num_workers=36,
                         collate_fn=ds.collate_fn,
                         pin_memory=True,
                         persistent_workers=True)
