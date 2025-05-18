@@ -37,13 +37,23 @@ def train(cfg):
         config=OmegaConf.to_container(cfg, resolve=True)  # 将 Hydra 配置转换为字典并传递
     )    
 
-    ckpt_path = None
-    last_ckpt = os.path.join(cfg.log_dir, 'last.ckpt')
-    if os.path.exists(last_ckpt):
-        ckpt_path = last_ckpt
-        print(f"Resuming from checkpoint: {ckpt_path}")
+    # Determine checkpoint path for resumption
+    # ModelCheckpoint saves to cfg.log_dir and save_last=True creates last.ckpt
+    # So, the resume path should be derived from cfg.log_dir
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))  # Change to root directory where train.py is located
+
+    potential_last_ckpt = os.path.join('./log_dir/last.ckpt')
+
+    print("="*80)
+    print("CURRENT DIRECTORY:", os.getcwd())
+    print("LOOKING FOR CHECKPOINT AT:", potential_last_ckpt)
+    print("="*80)
+    actual_ckpt_to_load = None # This will be passed to trainer.fit
+    if os.path.exists(potential_last_ckpt):
+        actual_ckpt_to_load = potential_last_ckpt
+        print(f"Attempting to resume from checkpoint: {actual_ckpt_to_load}")
     else:
-        print("No checkpoint found, starting training from scratch.")
+        print(f"No checkpoint found at {potential_last_ckpt}, starting training from scratch.")
 
     trainer = pl.Trainer(
         **cfg.train.trainer,
@@ -56,7 +66,7 @@ def train(cfg):
     torch.backends.cudnn.benchmark = True  
     # lightning_module.strict_loading = False
     # LightningModule.strict_loading = True
-    trainer.fit(lightning_module, datamodule=datamodule,ckpt_path=ckpt_path )
+    trainer.fit(lightning_module, datamodule=datamodule,ckpt_path=actual_ckpt_to_load)
     print(f'Training ends, best score: {checkpoint_callback.best_model_score}, ckpt path: {checkpoint_callback.best_model_path}')
 
 if __name__ == '__main__':

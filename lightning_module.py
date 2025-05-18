@@ -431,3 +431,39 @@ class CodecLightningModule(pl.LightningModule):
         if hasattr(self, 'spec_discriminator'):
             for p in self.spec_discriminator.parameters():
                 p.requires_grad = flag
+
+    # ------------------------------------------------------------------
+    # Utilities
+    # ------------------------------------------------------------------
+
+    def load_state_dict(self, state_dict, strict: bool = False):
+        """Load model parameters from *state_dict*.
+
+        The provided checkpoints created from earlier experiments may still
+        contain weights for a *perception_model* sub-module that has been
+        removed from the current architecture.  Attempting to load those
+        checkpoints with *strict=True* therefore raises an *Unexpected key*
+        error.  To make old checkpoints forward-compatible we filter out all
+        keys that start with the prefix ``"perception_model."`` **before**
+        delegating to ``torch.nn.Module.load_state_dict``.
+
+        Parameters
+        ----------
+        state_dict: Dict[str, Any]
+            A *state_dict* produced by :pymeth:`torch.nn.Module.state_dict`.
+        strict: bool, default = ``False``
+            Whether to enforce that the keys in *state_dict* exactly match
+            the module structure.  We default this to *False* so that minor
+            non-critical mismatches (e.g. missing buffers) do not interrupt
+            training.
+        """
+
+        # Drop legacy perception_model weights if they are present in the
+        # checkpoint.  This avoids *Unexpected key(s)* errors when the
+        # perception module has been removed from the current model.
+        filtered_state_dict = {
+            k: v for k, v in state_dict.items() if not k.startswith("perception_model.")
+        }
+
+        # Delegate to the original implementation.
+        return super().load_state_dict(filtered_state_dict, strict=strict)
