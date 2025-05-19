@@ -2,9 +2,19 @@ dataset:
   _target_: data_module.StandardAudioDataset
   # Either specify *name* for a single corpus **or** *names* as a list for
   # multi-corpus training.  Example: names: [librispeech, laion]
-  name: librispeech
+  name: laion_audio_stream
   # names: [librispeech, laion]
   root: ./data  # Root directory containing processed datasets
+  
+  # Streaming settings (used by new_module.DataModule)
+  streaming: true        # set true to read directly from HuggingFace Hub
+  hf_name: laion/LAION-Audio-300M
+  hf_config: null         # optional dataset config on the Hub
+  hf_splits:
+    train: train
+    val: train
+    test: train
+  shuffle_buffer_size: 20000
 
 train:
   batch_size: 8

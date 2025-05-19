@@ -1,50 +1,104 @@
-./data
-data
-
-./data/** */
-
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# ------------------------------------------------------------------
-# Checkpoints, logs, and experiment artifacts
-# ------------------------------------------------------------------
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+develop-eggs/
+*.egg-info/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg
+
+# PyInstaller
+# Обычно создается PyInstaller в корневой директории проекта.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.env.*
+.venv
+env/
+venv/
+ENV/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site/
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.project
+.classpath
+.cproject
+.buildpath
+*.DS_Store
+Thumbs.db
+
+# Specific to this project
+# Logs and experiment artifacts
+logs/
+log_dir/
+wandb/
 *.ckpt
 *.pth
-log_dir/
-logs/
-wandb/
 
-# ------------------------------------------------------------------
-# Jupyter
-# ------------------------------------------------------------------
-**/.ipynb_checkpoints/
+# Hydra outputs
+outputs/
+multirun/
 
-# ------------------------------------------------------------------
-# IDE & Editor settings
-# ------------------------------------------------------------------
-.vscode/
-.idea/
+# Data files - ensure these are not checked in
+# If you have specific data files that *should* be versioned (e.g., small samples),
+# use !pattern to explicitly include them after a general ignore.
+data/
+# Example: to keep a small sample TSV but ignore everything else in data/
+# data/*
+# !data/sample.tsv
 
-# ------------------------------------------------------------------
-# Python build / packaging / caches
-# ------------------------------------------------------------------
-dist/
-build/
-*.egg-info/
-.mypy_cache/
-.pytest_cache/
-.cache/
+# Slurm output files
+slurm-*.out
 
-# ------------------------------------------------------------------
-# Virtual environments
-# ------------------------------------------------------------------
-.venv/
-.env/
-
-# ------------------------------------------------------------------
-# OS generated files
-# ------------------------------------------------------------------
-.DS_Store
-Thumbs.db
+# Pyright cache
+.pyright_cache*/

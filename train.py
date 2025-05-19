@@ -11,7 +11,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.strategies import DDPStrategy,FSDPStrategy
 from torch.utils.data import DataLoader
-from data_module import DataModule
+from data_module import DataModule as LocalDataModule
+try:
+    from new_module import DataModule as StreamingDataModule  # noqa: E402
+except ImportError:
+    StreamingDataModule = None
 from lightning_module import CodecLightningModule
 from pytorch_lightning.loggers import WandbLogger
 from omegaconf import OmegaConf
@@ -28,7 +32,10 @@ def train(cfg):
     lr_monitor = LearningRateMonitor(logging_interval='step')
     callbacks = [checkpoint_callback, lr_monitor]
 
-    datamodule = DataModule(cfg)
+    # Choose DataModule implementation (local files vs streaming)
+    # We import both and decide inside `train()` based on cfg.dataset.streaming
+    streaming_flag = cfg.dataset.get("streaming", True)
+    datamodule = LocalDataModule(cfg) if (not streaming_flag or StreamingDataModule is None) else StreamingDataModule(cfg)
     lightning_module = CodecLightningModule(cfg)
     log_dir_name = os.path.basename(os.path.normpath(cfg.log_dir))
     wandb_logger = WandbLogger(
