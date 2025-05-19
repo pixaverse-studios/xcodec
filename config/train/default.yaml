@@ -6,7 +6,7 @@ trainer:
   max_steps: 3000000
   precision: 16-mixed
   limit_val_batches: 2560
-  val_check_interval: 100
+  val_check_interval: 500
   num_sanity_val_steps: 0
   accumulate_grad_batches: 1
 

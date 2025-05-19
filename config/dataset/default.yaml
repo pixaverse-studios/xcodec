@@ -15,6 +15,7 @@ dataset:
     val: train
     test: train
   shuffle_buffer_size: 20000
+  max_stream_samples: 1000000  # Limit the number of streamed samples so new_module can compute length
 
 train:
   batch_size: 8

@@ -365,6 +365,13 @@ class CodecLightningModule(pl.LightningModule):
             sync_dist=True
         )
 
+        # Log accumulated samples
+        # Ensure trainer and world_size are available; typically true after trainer setup
+        if self.trainer and hasattr(self.trainer, 'world_size') and self.trainer.world_size is not None:
+            effective_batch_size = self.cfg.dataset.train.batch_size * self.trainer.world_size
+            samples_seen = self.global_step * effective_batch_size
+            self.log('train/samples_seen', float(samples_seen), on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
+
     def validation_step(self, batch, batch_idx):
         # 您可以在此处实现验证逻辑
         output = self(batch)

@@ -51,9 +51,11 @@ class HFAudioStreamingDataset(IterableDataset):
         self.raw_ds = load_dataset(hf_name, hf_config, split=split, streaming=True)
 
         # Optional: limit the number of streamed examples
-        max_n = d_cfg.get("max_stream_samples", None)
-        if max_n is not None:
-            self.raw_ds = self.raw_ds.take(int(max_n))
+        max_n = d_cfg.get("max_stream_samples", 10000 )
+        print(f"max_n: {max_n}")
+        self._max_n = int(max_n) if max_n is not None else None
+        if self._max_n is not None:
+            self.raw_ds = self.raw_ds.take(self._max_n)
 
         # Optional shuffling (only meaningful during training)
         if phase == "train" and d_cfg.get("shuffle", True):
@@ -71,6 +73,12 @@ class HFAudioStreamingDataset(IterableDataset):
             example = self._process_item(item)
             if example is not None:
                 yield example
+
+    # If a maximum sample count is known, provide __len__ so progress bars show ETA
+    def __len__(self):
+        if self._max_n is not None:
+            return self._max_n
+        raise TypeError("Length not defined for unlimited streaming dataset")
 
     # ------------------------------------------------------------------
     # Helpers
@@ -153,6 +161,20 @@ class DataModule(pl.LightningDataModule):
             collate_fn=ds.collate_fn,
             pin_memory=True,
         )
+
+        # ------------------------------------------------------------------
+        # Lightning cannot compute len(dataloader) for an IterableDataset.
+        # If we *do* know the max number of samples, monkey-patch __len__ so
+        # progress bars show proper totals and ETA.
+        # ------------------------------------------------------------------
+        if isinstance(ds, IterableDataset) and hasattr(ds, "_max_n") and ds._max_n is not None:
+            total_batches = (ds._max_n + batch_size - 1) // batch_size
+
+            def _patched_len():  # noqa: ANN001
+                return total_batches
+
+            dl.__len__ = _patched_len  # type: ignore[attr-defined]
+
         return dl
 
     # Lightning hooks

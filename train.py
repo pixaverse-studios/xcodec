@@ -58,7 +58,10 @@ def train(cfg):
     actual_ckpt_to_load = None # This will be passed to trainer.fit
     if os.path.exists(potential_last_ckpt):
         actual_ckpt_to_load = potential_last_ckpt
-        print(f"Attempting to resume from checkpoint: {actual_ckpt_to_load}")
+        print("\n" + "="*80)
+        print("###  RESUMING TRAINING FROM THE LATEST CHECKPOINT  ###")
+        print(f"###  {actual_ckpt_to_load}  ###")
+        print("="*80 + "\n")
     else:
         print(f"No checkpoint found at {potential_last_ckpt}, starting training from scratch.")
 

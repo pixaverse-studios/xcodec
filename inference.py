@@ -19,7 +19,7 @@ from transformers import AutoFeatureExtractor, Wav2Vec2BertModel
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--input-dir', type=str, default='test_audio/input_test')
-    parser.add_argument('--ckpt', type=str, default='ckpt/epoch=4-step=1400000.ckpt')
+    parser.add_argument('--ckpt', type=str, default='last.ckpt')
     parser.add_argument('--output-dir',   type=str, default='test_audio/output_test')
              
     args = parser.parse_args()
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     
     st = time()
     for wav_path in tqdm(wav_paths):
-        target_wav_path = join(wav_dir, basename(wav_path))
+        target_wav_path = join(wav_dir, os.path.splitext(basename(wav_path))[0] + '.mp3')
         wav = librosa.load(wav_path, sr=sr)[0] 
         wav_cpu = torch.from_numpy(wav)
 
@@ -132,11 +132,6 @@ if __name__ == '__main__':
             vq_post_emb = fc_post_a(vq_post_emb.transpose(1,2)).transpose(1,2)
             recon = decoder(vq_post_emb.transpose(1, 2), vq=False)[0].squeeze().detach().cpu().numpy()
             # recon = decoder(decoder.vq2emb(vq_code.transpose(1,2)).transpose(1,2), vq=False).squeeze().detach().cpu().numpy()
-        sf.write(target_wav_path, recon, sr)
+        sf.write(target_wav_path, recon, sr, format='mp3')
     et = time()
     print(f'Inference ends, time: {(et-st)/60:.2f} mins')
-
-
-
-
-
