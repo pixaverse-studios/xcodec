@@ -79,7 +79,16 @@ class StandardAudioDataset(Dataset):
                 registry = json.load(f)
                 
             if self.dataset_name not in registry.get("datasets", {}):
-                raise ValueError(f"Dataset '{self.dataset_name}' not found in registry. Available datasets: {list(registry.get('datasets', {}).keys())}")
+                available = list(registry.get("datasets", {}).keys())
+                print(
+                    f"[WARN] Dataset '{self.dataset_name}' not found in registry. "
+                    f"Available datasets: {available}. Falling back to the first one."
+                )
+                if not available:
+                    raise ValueError(
+                        "Registry is empty – run scripts/processor.py to register your dataset."
+                    )
+                self.dataset_name = available[0]
                 
             dataset_info = registry["datasets"][self.dataset_name]
             self.dataset_root = join(self.data_root, dataset_info["path"])
@@ -127,8 +136,23 @@ class StandardAudioDataset(Dataset):
                 else:
                     raise FileNotFoundError(f"Neither registry nor metadata found for dataset '{self.dataset_name}'")
         
-        # Load file list from TSV
+        # Load file list from TSV – fallback-discover processed folder if path missing
         self.tsv_path = join(self.dataset_root, f"{phase}.tsv")
+
+        if not exists(self.tsv_path):
+            # Auto-discover another processed dataset folder containing the TSV
+            processed_root = join(self.data_root, "processed")
+            if os.path.isdir(processed_root):
+                for sub in os.listdir(processed_root):
+                    candidate_tsv = join(processed_root, sub, f"{phase}.tsv")
+                    if exists(candidate_tsv):
+                        print(
+                            f"[INFO] Auto-switched dataset_root to '{sub}' (found {phase}.tsv)."
+                        )
+                        self.dataset_root = join(processed_root, sub)
+                        self.tsv_path = candidate_tsv
+                        break
+
         self.file_list = self.load_tsv(self.tsv_path)
         
         # Set minimum audio length

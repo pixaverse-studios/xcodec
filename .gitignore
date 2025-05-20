@@ -102,3 +102,6 @@ slurm-*.out
 
 # Pyright cache
 .pyright_cache*/
+
+
+./scripts/dnp.py

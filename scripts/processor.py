@@ -8,6 +8,7 @@ import datetime
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
+import random
 
 # Standard format:
 # data/
@@ -183,9 +184,91 @@ def process_voxceleb(input_dir, output_dir, split_name, output_base_dir):
     pass
 
 def process_custom(input_dir, output_dir, split_name, output_base_dir):
-    """Process a custom dataset with a different structure"""
-    # Implementation for custom dataset processing
-    pass
+    """Process a custom dataset organised as <input_dir>/<split>/audios/*.wav
+
+    The function copies audio files into <output_dir>/audio, preserving file names, and writes
+    <split>.tsv files with <rel_path>\t<duration_frames>. It also creates metadata.json and
+    updates the central registry.
+    """
+
+    os.makedirs(output_dir, exist_ok=True)
+    audio_dir = os.path.join(output_dir, "audio")
+    os.makedirs(audio_dir, exist_ok=True)
+
+    metadata = {
+        "dataset": os.path.basename(input_dir.rstrip("/")),
+        "splits": {},
+        "sample_rate": None,
+        "audio_format": "wav",
+        "files": [],
+    }
+
+    processed_files = []
+
+    for split in ["train", "val", "test"]:
+        split_audio_dir = os.path.join(input_dir, split, "audios")
+        if not os.path.isdir(split_audio_dir):
+            continue
+
+        metadata["splits"][split] = split  # identity mapping
+
+        file_names = [f for f in os.listdir(split_audio_dir) if f.endswith((".wav", ".flac", ".mp3"))]
+        print(f"Processing custom {split} split – {len(file_names)} files …")
+
+        for fname in tqdm(file_names):
+            src_path = os.path.join(split_audio_dir, fname)
+
+            # Standardised file name (ensure unique)
+            std_name = fname  # keep as-is
+            dst_path = os.path.join(audio_dir, std_name)
+
+            try:
+                info = torchaudio.info(src_path)
+                duration = info.num_frames
+                if metadata["sample_rate"] is None:
+                    metadata["sample_rate"] = info.sample_rate
+
+                # Copy (or hardlink) audio file
+                if not os.path.exists(dst_path):
+                    shutil.copy2(src_path, dst_path)
+
+                file_info = {
+                    "original_path": src_path,
+                    "path": os.path.join("audio", std_name),
+                    "duration": duration,
+                    "split": split,
+                }
+
+                processed_files.append(file_info)
+                metadata["files"].append(file_info)
+
+            except Exception as e:
+                print(f"Error processing {src_path}: {e}")
+
+    # Write metadata
+    with open(os.path.join(output_dir, "metadata.json"), "w") as f:
+        json.dump(metadata, f, indent=2)
+
+    # Update registry
+    dataset_name = metadata["dataset"]
+    update_dataset_registry(output_base_dir, dataset_name, metadata)
+
+    # Write TSVs
+    splits_dict = {"train": [], "val": [], "test": []}
+    for fi in processed_files:
+        splits_dict[fi["split"].lower()].append(fi)
+
+    for split, files in splits_dict.items():
+        if not files:
+            continue
+        tsv_path = os.path.join(output_dir, f"{split}.tsv")
+        with open(tsv_path, "w") as f:
+            for fi in files:
+                f.write(f"{fi['path']}\t{fi['duration']}\n")
+        print(f"Created {split}.tsv with {len(files)} entries")
+
+    print(f"Processed {len(processed_files)} custom audio files.")
+    return output_dir
 
 def main():
     parser = argparse.ArgumentParser(description="Process audio datasets into a standardized format")

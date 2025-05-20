@@ -24,7 +24,7 @@ __all__ = ["DataModule"]
 # HARD-CODED SWITCH – set to True to *always* stream from HuggingFace.
 # Ignores whatever is in the Hydra config.
 # ------------------------------------------------------------------
-STREAMING_MODE = True
+STREAMING_MODE = False
 
 class HFAudioStreamingDataset(IterableDataset):
     """Stream audio examples from 🤗 datasets.

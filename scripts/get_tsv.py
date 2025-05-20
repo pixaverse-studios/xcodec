@@ -3,6 +3,8 @@ import os
 import torchaudio
 import torch
 from tqdm import tqdm
+import argparse
+from pathlib import Path
 
 def process_file(args):
     file_path, root_dir = args  
@@ -55,27 +57,87 @@ def list_audio_files(root_dir, output_file, exclude_dirs=None):
             if result:
                 file.write(result)
 
+def gen_tsv_for_split(split_audio_dir: str, output_tsv: str):
+    """Generate a TSV file for all audio in *split_audio_dir*.
+
+    Uses multiprocessing to speed-up duration reading & NaN detection.
+    """
+    if not os.path.isdir(split_audio_dir):
+        print(f"[WARN] Split dir {split_audio_dir} not found – skipping TSV generation.")
+        return
+
+    audio_files = [
+        (os.path.join(split_audio_dir, fname), split_audio_dir)
+        for fname in os.listdir(split_audio_dir)
+        if fname.endswith((".wav", ".flac", ".mp3"))
+    ]
+
+    audio_files.sort()
+
+    pool = Pool(processes=max(1, cpu_count() // 2))
+    results = list(
+        tqdm(
+            pool.imap(process_file, audio_files),
+            total=len(audio_files),
+            desc=f"Processing {os.path.basename(split_audio_dir)}",
+        )
+    )
+    pool.close()
+    pool.join()
+
+    if not results:
+        print(f"[WARN] No valid audio files for {split_audio_dir}.")
+        return
+
+    with open(output_tsv, "w") as f:
+        for line in results:
+            if line:
+                f.write(line)
+    print(f"Wrote {sum(1 for r in results if r)} entries to {output_tsv}")
+
 if __name__ == "__main__":
-    librispeech_base_dir = "./data/LibriSpeech"  # Base directory where data.py extracts LibriSpeech
-    
+    parser = argparse.ArgumentParser(description="Generate TSV files from audio dataset")
+    parser.add_argument(
+        "dataset_root",
+        type=str,
+        help="Root directory containing either 'train/audios', 'val/audios', ('test/audios') OR a raw LibriSpeech-style structure.",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["flat", "librispeech"],
+        default="flat",
+        help="Dataset layout mode. 'flat' expects train/val/test subdirs; 'librispeech' behaves like the old script.",
+    )
+    parser.add_argument("--output_dir", type=str, default="./data", help="Directory to save TSV files")
+    args = parser.parse_args()
+
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    if args.mode == "flat":
+        for split in ["train", "val", "test"]:
+            split_audio_dir = os.path.join(args.dataset_root, split, "audios")
+            output_tsv = os.path.join(args.output_dir, f"{Path(args.dataset_root).name}_{split}.tsv")
+            gen_tsv_for_split(split_audio_dir, output_tsv)
+    else:
+        # Legacy LibriSpeech handling
+        librispeech_base_dir = args.dataset_root
     splits = {
         "train": "train-clean-100",
         "dev": "dev-clean",
-        "test": "test-clean"
+            "test": "test-clean",
     }
-
-    os.makedirs("./data", exist_ok=True)
-
     for split_name, split_folder in splits.items():
         root_directory = os.path.join(librispeech_base_dir, split_folder)
-        output_tsv = os.path.join("./data", f"librispeech_{split_name}.tsv")
-        
+            output_tsv = os.path.join(args.output_dir, f"librispeech_{split_name}.tsv")
         if os.path.exists(root_directory):
             print(f"Processing LibriSpeech {split_name} split from: {root_directory}")
             list_audio_files(root_directory, output_tsv, exclude_dirs=None)
             print(f"Finished processing. TSV file saved to: {output_tsv}")
         else:
-            print(f"Directory not found for LibriSpeech {split_name} split: {root_directory}")
-            print(f"Make sure you have downloaded LibriSpeech datasets to {librispeech_base_dir}")
-    
+                print(
+                    f"Directory not found for LibriSpeech {split_name} split: {root_directory}"
+                )
+                print(
+                    f"Make sure you have downloaded LibriSpeech datasets to {librispeech_base_dir}"
+                )
     print("\nFinished generating TSV files for LibriSpeech.")
