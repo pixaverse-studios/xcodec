@@ -56,13 +56,24 @@ class StandardAudioDataset(Dataset):
         self.phase_cfg = cfg.dataset.get(phase)
         self.ocwd = hydra.utils.get_original_cwd()
         
-        # Get dataset config - default to "librispeech" if not specified
-        # This handles older config files that don't have dataset.name
-        if hasattr(cfg.dataset, 'name'):
-            self.dataset_name = cfg.dataset.name
+        # ------------------------------------------------------------------
+        # SINGLE- vs MULTI-CORPUS SETUP
+        # ------------------------------------------------------------------
+        self.multi_corpus = False
+
+        if hasattr(cfg.dataset, 'names') and cfg.dataset.names:
+            # New style: list of dataset names to be combined
+            self.dataset_names = list(cfg.dataset.names)
+            self.dataset_name = self.dataset_names[0]  # primary for logging
+            self.multi_corpus = True
         else:
-            print("No dataset name specified in config, defaulting to 'librispeech'")
-            self.dataset_name = "librispeech"
+            # Back-compat: single dataset
+            if hasattr(cfg.dataset, 'name'):
+                self.dataset_name = cfg.dataset.name
+            else:
+                print("No dataset name specified in config, defaulting to 'librispeech'")
+                self.dataset_name = "librispeech"
+            self.dataset_names = [self.dataset_name]
         
         # Set data root directory
         if hasattr(cfg.dataset, 'root'):
@@ -73,82 +84,70 @@ class StandardAudioDataset(Dataset):
         
         # First check if we have a central registry
         self.registry_path = join(self.data_root, "datasets.json")
+        combined_file_list = []
+        sr_set = set()
+
         if exists(self.registry_path):
-            # Use the central registry to get dataset information
             with open(self.registry_path, 'r') as f:
                 registry = json.load(f)
-                
-            if self.dataset_name not in registry.get("datasets", {}):
-                available = list(registry.get("datasets", {}).keys())
-                print(
-                    f"[WARN] Dataset '{self.dataset_name}' not found in registry. "
-                    f"Available datasets: {available}. Falling back to the first one."
-                )
-                if not available:
+
+            for dname in self.dataset_names:
+                if dname not in registry.get("datasets", {}):
                     raise ValueError(
-                        "Registry is empty – run scripts/processor.py to register your dataset."
+                        f"Dataset '{dname}' not found in registry. Available: {list(registry.get('datasets', {}).keys())}"
                     )
-                self.dataset_name = available[0]
-                
-            dataset_info = registry["datasets"][self.dataset_name]
-            self.dataset_root = join(self.data_root, dataset_info["path"])
-            
-            # Load dataset-specific parameters from registry
-            self.sr = dataset_info.get("sample_rate", cfg.preprocess.audio.sr)
-            self.audio_format = dataset_info.get("audio_format", "flac")
-            
-            print(f"Using dataset '{self.dataset_name}' from registry")
-            print(f"Stats: Train: {dataset_info['stats'].get('train_samples', 0)} samples, "
-                  f"Val: {dataset_info['stats'].get('val_samples', 0)} samples, "
-                  f"Test: {dataset_info['stats'].get('test_samples', 0)} samples")
+
+                dinfo = registry["datasets"][dname]
+                droot = join(self.data_root, dinfo["path"])
+
+                tsv_path = join(droot, f"{phase}.tsv")
+                if not exists(tsv_path):
+                    raise FileNotFoundError(f"Expected TSV {tsv_path} for dataset '{dname}' not found.")
+
+                flist = self.load_tsv(tsv_path)
+                # attach root so __getitem__ can build absolute path
+                for item in flist:
+                    item["_root"] = droot
+                combined_file_list.extend(flist)
+
+                sr_set.add(dinfo.get("sample_rate", cfg.preprocess.audio.sr))
+
+            self.file_list = combined_file_list
+
+            # choose sample rate (must match)
+            if len(sr_set) > 1:
+                raise ValueError(f"Sample rate mismatch across datasets: {sr_set}")
+            self.sr = sr_set.pop()
+            self.audio_format = "mixed"
+
+            print(f"Loaded {len(self.file_list)} {phase} samples from {len(self.dataset_names)} datasets: {self.dataset_names}")
         else:
-            # Fallback to direct folder structure if no registry
+            # No registry available – expect a folder at processed/<dataset_name>
             self.dataset_root = join(self.data_root, "processed", self.dataset_name)
-            
-            # Load metadata from dataset folder
+
             self.metadata_path = join(self.dataset_root, "metadata.json")
-            if exists(self.metadata_path):
-                with open(self.metadata_path, 'r') as f:
-                    self.metadata = json.load(f)
-                self.sr = self.metadata.get("sample_rate", cfg.preprocess.audio.sr)
-                self.audio_format = self.metadata.get("audio_format", "flac")
-            else:
-                # Last resort: try to use LibriSpeech paths directly from config
-                if hasattr(cfg.preprocess, 'datasets') and hasattr(cfg.preprocess.datasets, 'LibriSpeech'):
-                    print(f"No metadata found for dataset '{self.dataset_name}', using LibriSpeech config")
-                    
-                    # Use TSV files from the config
-                    if self.phase == 'train':
-                        self.tsv_path = join(self.ocwd, cfg.preprocess.view.train_filelist)
-                    elif self.phase == 'val':
-                        self.tsv_path = join(self.ocwd, cfg.dataset.val.filelist)
-                    else:
-                        self.tsv_path = join(self.ocwd, cfg.preprocess.view.test_filelist)
-                    
-                    self.sr = cfg.preprocess.audio.sr
-                    self.audio_format = "flac"
-                    self.file_list = self.load_tsv(self.tsv_path)
-                    self.min_audio_length = cfg.dataset.min_audio_length
-                    self.feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/w2v-bert-2.0")
-                    
-                    print(f"Loaded {len(self.file_list)} {phase} samples from {self.tsv_path}")
-                    return
-                else:
-                    raise FileNotFoundError(f"Neither registry nor metadata found for dataset '{self.dataset_name}'")
+            if not exists(self.metadata_path):
+                raise FileNotFoundError(
+                    f"metadata.json not found for dataset '{self.dataset_name}'. "
+                    "Run scripts/processor.py to format & register the dataset."
+                )
+
+            with open(self.metadata_path, 'r') as f:
+                self.metadata = json.load(f)
+
+            self.sr = self.metadata.get("sample_rate", cfg.preprocess.audio.sr)
+            self.audio_format = self.metadata.get("audio_format", "flac")
         
-        # Load file list from TSV – fallback-discover processed folder if path missing
+        # Load file list from TSV – with auto-discover fallback
         self.tsv_path = join(self.dataset_root, f"{phase}.tsv")
 
         if not exists(self.tsv_path):
-            # Auto-discover another processed dataset folder containing the TSV
             processed_root = join(self.data_root, "processed")
             if os.path.isdir(processed_root):
                 for sub in os.listdir(processed_root):
                     candidate_tsv = join(processed_root, sub, f"{phase}.tsv")
                     if exists(candidate_tsv):
-                        print(
-                            f"[INFO] Auto-switched dataset_root to '{sub}' (found {phase}.tsv)."
-                        )
+                        print(f"[INFO] Auto-switched dataset_root to '{sub}' (found {phase}.tsv).")
                         self.dataset_root = join(processed_root, sub)
                         self.tsv_path = candidate_tsv
                         break
@@ -187,13 +186,12 @@ class StandardAudioDataset(Dataset):
         file_info = self.file_list[idx]
         
         # Handle different path formats - for compatibility with old config
-        if hasattr(self, 'dataset_root'):
+        if "_root" in file_info:
+            audio_path = join(file_info["_root"], file_info["path"])
+        elif hasattr(self, 'dataset_root'):
             audio_path = join(self.dataset_root, file_info["path"])
-        elif hasattr(self.cfg.preprocess.datasets, 'LibriSpeech'):
-            # Direct LibriSpeech path from old config
-            audio_path = join(self.cfg.preprocess.datasets.LibriSpeech.root, file_info["path"])
         else:
-            raise ValueError("Cannot determine audio file path")
+            raise ValueError("Cannot determine audio file path – check dataset registration and TSV paths.")
         
         # Verify file exists
         if not exists(audio_path):

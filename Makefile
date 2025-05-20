@@ -1,4 +1,4 @@
-.PHONY: help download_rhymes download_gopipe reorganize_rhymes tsv register train
+.PHONY: help download_rhymes download_gopipe format train
 
 help:
 	@echo "Available targets:"
@@ -24,28 +24,7 @@ download_gopipe:
 	  --dest_root Data
 
 # -----------------------------------------------------------------------------
-# 2. Reorganise already-extracted rhymes folder (if needed)
-# -----------------------------------------------------------------------------
-reorganize_rhymes:
-	python scripts/reorganize_extracted.py processed_rhymes_extracted --tag rhymes --dest_root Data
-
-# -----------------------------------------------------------------------------
-# 3. Generate TSVs for the flat Data directory
-# -----------------------------------------------------------------------------
-tsv:
-	python scripts/get_tsv.py Data --mode flat --output_dir tsv_out
-
-# -----------------------------------------------------------------------------
-# 4. Register / package the dataset for training
-# -----------------------------------------------------------------------------
-register:
-	python scripts/processor.py \
-	  --dataset custom \
-	  --input_dir Data \
-	  --output_dir datasets
-
-# -----------------------------------------------------------------------------
-# 5. Kick off training (edit flags as required)
+# 3. Kick off training (edit flags as required)
 # -----------------------------------------------------------------------------
 train:
 python train.py \
@@ -56,3 +35,9 @@ python train.py \
 	  dataset.train.batch_size?=32 \
 	  dataset.val.batch_size?=32 \
 	  train.trainer.accumulate_grad_batches?=1
+
+# -----------------------------------------------------------------------------
+# 0. Format extracted datasets into standard layout & update registry
+# -----------------------------------------------------------------------------
+format:
+	python scripts/format_datasets.py config/dataset/default.yaml --output_root ./data
