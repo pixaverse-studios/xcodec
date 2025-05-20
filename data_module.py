@@ -16,6 +16,12 @@ import utils
 from transformers import AutoFeatureExtractor
 from torchaudio.transforms import Resample
 from tqdm import tqdm
+from omegaconf import OmegaConf
+import warnings, logging
+
+warnings.filterwarnings("ignore")             # silence *all* Python warnings
+os.environ["TORCH_AUDIO_BACKEND"] = "sox_io"  # fewer stderr lines from FFmpeg backend
+logging.getLogger().setLevel(logging.ERROR)   # Lightning and HF logs → only errors
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, cfg):
@@ -24,12 +30,17 @@ class DataModule(pl.LightningDataModule):
         self.ocwd = hydra.utils.get_original_cwd()
 
     def get_loader(self, phase):
-        phase_cfg = self.cfg.dataset.get(phase)
-        batch_size = phase_cfg.batch_size
+
+        # Get batch size directly from dataset config
+        batch_size = self.cfg.dataset.dataset[phase].batch_size
+        shuffle = self.cfg.dataset.dataset[phase].shuffle
+
+        print(self.cfg.dataset.dataset)
+
         ds = StandardAudioDataset(phase, self.cfg)
         dl = DataLoader(ds, 
                         batch_size=batch_size,
-                        shuffle=phase_cfg.shuffle,
+                        shuffle=shuffle,
                         num_workers=16,
                         collate_fn=ds.collate_fn,
                         pin_memory=True,
@@ -53,115 +64,87 @@ class StandardAudioDataset(Dataset):
     def __init__(self, phase, cfg):
         self.phase = phase
         self.cfg = cfg
-        self.phase_cfg = cfg.dataset.get(phase)
+        
+        # Store dataset config for easier access
+        self.dataset_cfg = self.cfg.dataset.dataset
+        
+        # Get config directly from dataset section
+        self.phase_cfg = self.dataset_cfg[phase]
         self.ocwd = hydra.utils.get_original_cwd()
         
         # ------------------------------------------------------------------
-        # SINGLE- vs MULTI-CORPUS SETUP
+        # SINGLE- vs MULTI-CORPUS SETUP (always uses cfg.dataset.dataset.names)
         # ------------------------------------------------------------------
-        self.multi_corpus = False
+        if not hasattr(self.dataset_cfg, 'names') or not self.dataset_cfg.names:
+            raise ValueError("Config must provide cfg.dataset.dataset.names (list of datasets)")
 
-        if hasattr(cfg.dataset, 'names') and cfg.dataset.names:
-            # New style: list of dataset names to be combined
-            self.dataset_names = list(cfg.dataset.names)
-            self.dataset_name = self.dataset_names[0]  # primary for logging
-            self.multi_corpus = True
-        else:
-            # Back-compat: single dataset
-            if hasattr(cfg.dataset, 'name'):
-                self.dataset_name = cfg.dataset.name
-            else:
-                print("No dataset name specified in config, defaulting to 'librispeech'")
-                self.dataset_name = "librispeech"
-            self.dataset_names = [self.dataset_name]
+        self.dataset_names = list(self.dataset_cfg.names)
+        self.dataset_name = self.dataset_names[0]  # primary name for logging
+        self.multi_corpus = len(self.dataset_names) > 1
         
         # Set data root directory
-        if hasattr(cfg.dataset, 'root'):
-            self.data_root = join(self.ocwd, cfg.dataset.root)
+        if hasattr(self.dataset_cfg, 'root'):
+            self.data_root = join(self.ocwd, self.dataset_cfg.root)
         else:
             self.data_root = join(self.ocwd, "./data")
             print(f"No data root specified in config, using default: {self.data_root}")
         
         # First check if we have a central registry
         self.registry_path = join(self.data_root, "datasets.json")
+        if not exists(self.registry_path):
+            raise FileNotFoundError(f"Registry {self.registry_path} not found. Run scripts/format_datasets.py first.")
+
         combined_file_list = []
         sr_set = set()
 
-        if exists(self.registry_path):
-            with open(self.registry_path, 'r') as f:
-                registry = json.load(f)
+        with open(self.registry_path, 'r') as f:
+            registry = json.load(f)
 
-            for dname in self.dataset_names:
-                if dname not in registry.get("datasets", {}):
-                    raise ValueError(
-                        f"Dataset '{dname}' not found in registry. Available: {list(registry.get('datasets', {}).keys())}"
-                    )
-
-                dinfo = registry["datasets"][dname]
-                droot = join(self.data_root, dinfo["path"])
-
-                tsv_path = join(droot, f"{phase}.tsv")
-                if not exists(tsv_path):
-                    raise FileNotFoundError(f"Expected TSV {tsv_path} for dataset '{dname}' not found.")
-
-                flist = self.load_tsv(tsv_path)
-                # attach root so __getitem__ can build absolute path
-                for item in flist:
-                    item["_root"] = droot
-                combined_file_list.extend(flist)
-
-                sr_set.add(dinfo.get("sample_rate", cfg.preprocess.audio.sr))
-
-            self.file_list = combined_file_list
-
-            # choose sample rate (must match)
-            if len(sr_set) > 1:
-                raise ValueError(f"Sample rate mismatch across datasets: {sr_set}")
-            self.sr = sr_set.pop()
-            self.audio_format = "mixed"
-
-            print(f"Loaded {len(self.file_list)} {phase} samples from {len(self.dataset_names)} datasets: {self.dataset_names}")
-        else:
-            # No registry available – expect a folder at processed/<dataset_name>
-            self.dataset_root = join(self.data_root, "processed", self.dataset_name)
-
-            self.metadata_path = join(self.dataset_root, "metadata.json")
-            if not exists(self.metadata_path):
-                raise FileNotFoundError(
-                    f"metadata.json not found for dataset '{self.dataset_name}'. "
-                    "Run scripts/processor.py to format & register the dataset."
+        for dname in self.dataset_names:
+            if dname not in registry.get("datasets", {}):
+                raise ValueError(
+                    f"Dataset '{dname}' not found in registry. Available: {list(registry.get('datasets', {}).keys())}"
                 )
+            
+            dinfo = registry["datasets"][dname]
+            droot = join(self.data_root, dinfo["path"])
 
-            with open(self.metadata_path, 'r') as f:
-                self.metadata = json.load(f)
+            tsv_path = join(droot, f"{phase}.tsv")
+            if not exists(tsv_path):
+                raise FileNotFoundError(f"Expected TSV {tsv_path} for dataset '{dname}' not found.")
 
-            self.sr = self.metadata.get("sample_rate", cfg.preprocess.audio.sr)
-            self.audio_format = self.metadata.get("audio_format", "flac")
+            flist = self.load_tsv(tsv_path)
+            for item in flist:
+                item["_root"] = droot
+            combined_file_list.extend(flist)
+
+            sr_set.add(dinfo.get("sample_rate"))
+
+        self.file_list = combined_file_list
+
+        if len(sr_set) > 1:
+            raise ValueError(f"Sample rate mismatch across datasets: {sr_set}")
+        self.sr = sr_set.pop()
+        self.audio_format = "mixed"
+
+        print(f"Loaded {len(self.file_list)} {phase} samples from {len(self.dataset_names)} datasets: {self.dataset_names}")
         
         # Load file list from TSV – with auto-discover fallback
-        self.tsv_path = join(self.dataset_root, f"{phase}.tsv")
+        self.tsv_path = join(self.data_root, "processed", self.dataset_name, f"{phase}.tsv")
 
-        if not exists(self.tsv_path):
-            processed_root = join(self.data_root, "processed")
-            if os.path.isdir(processed_root):
-                for sub in os.listdir(processed_root):
-                    candidate_tsv = join(processed_root, sub, f"{phase}.tsv")
-                    if exists(candidate_tsv):
-                        print(f"[INFO] Auto-switched dataset_root to '{sub}' (found {phase}.tsv).")
-                        self.dataset_root = join(processed_root, sub)
-                        self.tsv_path = candidate_tsv
-                        break
-
-        self.file_list = self.load_tsv(self.tsv_path)
-        
-        # Set minimum audio length
-        self.min_audio_length = cfg.dataset.min_audio_length
+        self.min_audio_length = self.dataset_cfg.min_audio_length
         
         # Initialize feature extractor for audio representation
         self.feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/w2v-bert-2.0")
         
         print(f"Loaded {len(self.file_list)} {phase} samples from {self.dataset_name}")
         
+        # Debug log
+        try:
+            print(f"[DEBUG] Dataset init – {phase} cfg →", OmegaConf.to_container(self.phase_cfg, resolve=True))
+        except Exception:
+            print(f"[DEBUG] Dataset init – {phase} cfg (raw dict) → {dict(self.phase_cfg)}")
+
     def __len__(self):
         return len(self.file_list)
 
@@ -188,8 +171,8 @@ class StandardAudioDataset(Dataset):
         # Handle different path formats - for compatibility with old config
         if "_root" in file_info:
             audio_path = join(file_info["_root"], file_info["path"])
-        elif hasattr(self, 'dataset_root'):
-            audio_path = join(self.dataset_root, file_info["path"])
+        elif hasattr(self, 'data_root'):
+            audio_path = join(self.data_root, file_info["path"])
         else:
             raise ValueError("Cannot determine audio file path – check dataset registration and TSV paths.")
         
@@ -237,10 +220,17 @@ class StandardAudioDataset(Dataset):
             return out
             
         except Exception as e:
-            raise RuntimeError(f"Error loading audio file {audio_path}: {str(e)}")
-    
+            # Return None so collate_fn can skip it instead of crashing the DataLoader
+            print(f"[WARN] Skipping corrupt file {audio_path}: {e}")
+            return None
+
     def collate_fn(self, batch):
         """Collate function for batching samples"""
+        # drop samples that are None (corrupt files)
+        batch = [b for b in batch if b is not None]
+        if len(batch) == 0:
+            return None  # DataLoader will silently skip
+
         wavs = [b['wav'] for b in batch]
         wavs = torch.stack(wavs)
         

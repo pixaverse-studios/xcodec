@@ -1,20 +1,19 @@
 dataset:
-
-  names: [rhymes, gopipe]   # <- change to your datasets
+  names: [fma_medium]   # <- change to your datasets
   root: data                # Root containing processed/
-  
+
   train:
     batch_size: 10
     shuffle: true
 
-val:
-  batch_size: 10
-  shuffle: false
+  val:
+    batch_size: 10
+    shuffle: false
 
-test:
-  batch_size: 1
-  shuffle: false
+  test:
+    batch_size: 1
+    shuffle: false
 
-padding_idx: 0
-frame_length: 200
-min_audio_length: 96000
+  padding_idx: 0
+  frame_length: 200
+  min_audio_length: 96000

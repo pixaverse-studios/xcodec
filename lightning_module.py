@@ -37,6 +37,7 @@ class CodecLightningModule(pl.LightningModule):
         super().__init__()
         self.cfg = cfg
         self.ocwd = hydra.utils.get_original_cwd()
+        self.dataset_cfg = self.cfg.dataset.dataset
         self.construct_model()
         self.construct_criteria()
         self.save_hyperparameters()
@@ -352,7 +353,7 @@ class CodecLightningModule(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             logger=True,
-            batch_size=self.cfg.dataset.train.batch_size,
+            batch_size=self.dataset_cfg.train.batch_size,
             sync_dist=True
         )
         self.log_dict(
@@ -361,14 +362,14 @@ class CodecLightningModule(pl.LightningModule):
             on_epoch=True,
             prog_bar=True,
             logger=True,
-            batch_size=self.cfg.dataset.train.batch_size,
+            batch_size=self.dataset_cfg.train.batch_size,
             sync_dist=True
         )
 
         # Log accumulated samples
         # Ensure trainer and world_size are available; typically true after trainer setup
         if self.trainer and hasattr(self.trainer, 'world_size') and self.trainer.world_size is not None:
-            effective_batch_size = self.cfg.dataset.train.batch_size * self.trainer.world_size
+            effective_batch_size = self.dataset_cfg.train.batch_size * self.trainer.world_size
             samples_seen = self.global_step * effective_batch_size
             self.log('train/samples_seen', float(samples_seen), on_step=True, on_epoch=False, prog_bar=False, logger=True, sync_dist=True)
 

@@ -6,7 +6,6 @@ import argparse
 from pathlib import Path
 from typing import List, Dict
 
-import torchaudio
 from tqdm import tqdm
 from omegaconf import OmegaConf
 
@@ -44,9 +43,11 @@ def write_tsv(file_infos: List[Dict], out_path: Path):
 
 def format_single_dataset(d_cfg, registry: Dict, output_base: Path):
     """Format one dataset according to config block *d_cfg*"""
-
-    name: str = d_cfg.name  # required
-    src_dir: Path = Path(d_cfg.src_dir).resolve()
+    
+    print(f"Processing dataset config: {d_cfg}")  # Debug log
+    
+    name = d_cfg["name"]  # Access as dict instead of attribute
+    src_dir: Path = Path(d_cfg["src_dir"]).resolve()
     if not src_dir.exists():
         raise FileNotFoundError(f"Source dir {src_dir} not found for dataset '{name}'")
 
@@ -85,31 +86,27 @@ def format_single_dataset(d_cfg, registry: Dict, output_base: Path):
     # Copy and collect metadata
     # --------------------------------------------------------------
     processed_files: List[Dict] = []
-    sample_rate = None
+    sample_rate = 16000  # default; training code will resample
 
     for src_path in tqdm(files, desc=f"Copying→{name}"):
         try:
-            info = torchaudio.info(str(src_path))
-            duration = info.num_frames
-            if sample_rate is None:
-                sample_rate = info.sample_rate
-        except Exception:
-            # fall back to duration unknown
-            duration = -1
+            duration = -1  # unknown; can be filled later if needed
 
-        tag = d_cfg.get("tag", name)
-        new_name = f"{tag}_{src_path.stem}{src_path.suffix}"
-        dst_path = audio_out_dir / new_name
-        safe_copy(src_path, dst_path)
+            tag = d_cfg.get("tag", name)
+            new_name = f"{tag}_{src_path.stem}{src_path.suffix}"
+            dst_path = audio_out_dir / new_name
+            safe_copy(src_path, dst_path)
 
-        processed_files.append(
-            {
-                "original_path": str(src_path),
-                "path": str(Path("audio") / new_name),
-                "duration": duration,
-                "split": split_map[src_path],
-            }
-        )
+            processed_files.append(
+                {
+                    "original_path": str(src_path),
+                    "path": str(Path("audio") / new_name),
+                    "duration": duration,
+                    "split": split_map[src_path],
+                }
+            )
+        except Exception as e:
+            print(f"[WARN] Failed to process {src_path}: {e}")
 
     # --------------------------------------------------------------
     # Write metadata & TSVs
@@ -117,7 +114,7 @@ def format_single_dataset(d_cfg, registry: Dict, output_base: Path):
     metadata = {
         "dataset": name,
         "splits": {s: s for s in ["train", "val", "test"]},
-        "sample_rate": sample_rate or 16000,
+        "sample_rate": sample_rate,
         "audio_format": "mixed",
         "files": processed_files,
     }
@@ -158,28 +155,45 @@ def format_single_dataset(d_cfg, registry: Dict, output_base: Path):
 # ------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Format one or more datasets into the standard layout")
-    parser.add_argument("config", type=str, help="YAML/JSON config describing datasets to format")
+    parser = argparse.ArgumentParser(description="Format datasets into the standard layout")
+    parser.add_argument("config", nargs="?", default=None, help="Optional YAML/JSON config. If omitted, auto-discovers datasets under ./extracted.")
+    parser.add_argument("--extracted_root", type=str, default="./extracted", help="Directory containing extracted dataset folders (used when no config).")
     parser.add_argument("--output_root", type=str, default="./data", help="Root where 'processed/' and registry live")
     args = parser.parse_args()
 
-    cfg = OmegaConf.load(args.config)
+    # --------------------------------------------------------------
+    # Build a python list `datasets_list` from whichever config style is used
+    # --------------------------------------------------------------
 
-    # ------------------------------------------------------------------
-    # Accept two config styles:
-    #   1) Explicit list – cfg.datasets: [ {name, src_dir, ...}, ... ]
-    #   2) Hydra-style dataset block – cfg.dataset.names + cfg.dataset.root
-    # ------------------------------------------------------------------
+    datasets_list = []
 
-    if not hasattr(cfg, "datasets"):
-        if hasattr(cfg, "dataset") and hasattr(cfg.dataset, "names"):
-            root_dir = Path(cfg.dataset.get("root", "./data"))
-            ds_entries = []
+    if args.config is not None:
+        print(f"[DEBUG] Using config file: {args.config}")
+        cfg = OmegaConf.load(args.config)
+        print(f"Loaded config: {OmegaConf.to_container(cfg)}")  # Debug log
+
+        if "datasets" in cfg:  # explicit list style
+            for ds in cfg.datasets:
+                datasets_list.append(OmegaConf.to_container(ds))  # Convert to dict
+        elif "dataset" in cfg and "names" in cfg.dataset:
+            # Optional explicit src_root, otherwise fall back to --extracted_root
+            src_root = Path(cfg.dataset.get("src_root", args.extracted_root))
             for n in cfg.dataset.names:
-                ds_entries.append({"name": n, "src_dir": str(Path(root_dir) / n), "tag": n})
-            cfg.datasets = ds_entries  # type: ignore[attr-defined]
+                datasets_list.append({"name": n, "src_dir": str(src_root / n), "tag": n})
         else:
-            raise ValueError("Config must contain either 'datasets' list or 'dataset.names'.")
+            raise ValueError("Config missing 'datasets' list or 'dataset.names'.")
+    else:
+        # No config: auto-discover under extracted_root
+        extracted_root = Path(args.extracted_root).resolve()
+        print(f"[DEBUG] Auto-discovering datasets under {extracted_root}")
+        if not extracted_root.exists():
+            raise FileNotFoundError(f"Extracted root {extracted_root} not found. Run extract_archives.py first.")
+
+        for sub in extracted_root.iterdir():
+            if sub.is_dir():
+                datasets_list.append({"name": sub.name, "src_dir": str(sub), "tag": sub.name})
+
+    print(f"Datasets to process: {datasets_list}")  # Debug log
 
     output_root = Path(args.output_root).resolve()
     output_root.mkdir(parents=True, exist_ok=True)
@@ -189,7 +203,7 @@ def main():
     if registry_path.exists():
         registry = json.loads(registry_path.read_text())
 
-    for ds_cfg in cfg.datasets:
+    for ds_cfg in datasets_list:
         format_single_dataset(ds_cfg, registry, output_root)
 
     # save registry
