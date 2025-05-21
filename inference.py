@@ -19,7 +19,7 @@ from transformers import AutoFeatureExtractor, Wav2Vec2BertModel
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--input-dir', type=str, default='test_audio/input_test')
-    parser.add_argument('--ckpt', type=str, default='outputs/2025-05-20/01-16-21/logs/epoch=7-step=1440000.ckpt')
+    parser.add_argument('--ckpt', type=str, default='./outputs/2025-05-20/20-05-54/logs/last.ckpt')
     parser.add_argument('--output-dir',   type=str, default='test_audio/output_test')
              
     args = parser.parse_args()

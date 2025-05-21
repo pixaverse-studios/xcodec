@@ -58,9 +58,9 @@ def upload_to_s3(local_file, bucket, s3_file):
 
 def main():
     # Set up paths and names
-    local_file = "/workspace/xcodec/outputs/2025-05-19/22-02-58/logs/last.ckpt"
+    local_file = "/workspace/xcodec/outputs/2025-05-20/20-05-54/logs/last.ckpt"
     s3_folder = "candy-ckpt"
-    s3_filename = "candy-second.ckpt"
+    s3_filename = "candy-third.ckpt"
     s3_path = f"{s3_folder}/{s3_filename}"
     
     # Upload the file
